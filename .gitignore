@@ -1,2 +1,5 @@
 *target/
 /repak/tests/config.sh
+*.pak
+*.diff
+/Content/

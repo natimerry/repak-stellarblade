@@ -842,6 +842,7 @@ dependencies = [
  "aes",
  "assert_cmd",
  "base64",
+ "byteorder",
  "clap",
  "dir-diff",
  "glob",
