@@ -486,10 +486,7 @@ fn pack(aes_key: Option<aes::Aes256>, args: ActionPack) -> Result<(), repak::Err
         .iter()
         .filter(|p| {
             p.extension().and_then(|ext| ext.to_str()) == Some("uasset")
-                && p.parent()
-                    .and_then(|parent| parent.file_name())
-                    .and_then(|name| name.to_str())
-                    == Some("Meshes")
+                && ( p.to_str().unwrap().to_lowercase().contains("meshes") || p.to_str().unwrap().to_lowercase().contains("mesh") )
         })
         .map(|p| p.clone())
         .collect::<Vec<PathBuf>>();
