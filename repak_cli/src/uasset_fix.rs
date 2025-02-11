@@ -215,10 +215,12 @@ pub fn read_uexp(
                 f.stream_position()?
             );
 
-            if max_bytes < file_size as i32 {
-                max_bytes = max(max_bytes + 5, (file_size - starting_pos) as i32);
-                println!("Increasing range to {}", max_bytes);
+            if max_bytes == file_size as i32{
+                break;
             }
+            max_bytes = max(max_bytes + 0x50000, (file_size - starting_pos) as i32);
+            println!("Increasing range to {}", max_bytes);
+
             continue;
         }
 
