@@ -62,7 +62,7 @@
         Id='*'
         Name='repak_cli'
         UpgradeCode='723E95D8-E87B-46BC-AD3B-C128583967CF'
-        Manufacturer='spuds; trumank'
+        Manufacturer='spuds; trumank; natimerry'
         Language='1033'
         Codepage='1252'
         Version='$(var.Version)'>
@@ -70,7 +70,7 @@
         <Package Id='*'
             Keywords='Installer'
             Description='Utility for building/extracting/inspecting Unreal Engine .pak files'
-            Manufacturer='spuds; trumank'
+            Manufacturer='spuds; trumank; natimerry'
             InstallerVersion='450'
             Languages='1033'
             Compressed='yes'
