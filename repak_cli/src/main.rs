@@ -561,6 +561,7 @@ fn pack(aes_key: Option<aes::Aes256>, args: ActionPack) -> Result<(), repak::Err
 
             if !uexp_file.exists() {
                 panic!("UEXP file doesnt exist");
+                // damn
             }
 
             let rel_uasset = &uassetfile
