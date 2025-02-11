@@ -136,7 +136,7 @@ fn fetch_oodle() -> Result<std::path::PathBuf> {
     if !oodle_path.exists() {
         // fuck downloading the lib virustotal smacks me for it
         // we finna embed the whole DLL into our program
-
+        // and pull it out of our asses if we need it
         File::create(&oodle_path)?.write_all(&OODLE_PLATFORM.bytes)?;
     }
     Ok(oodle_path)

@@ -23,7 +23,7 @@ for %%F in (%*) do (
             echo ======================================
             echo Processing folder: %%F
             @pushd %~dp0
-            .\repak.exe --aes-key 0C263D8C22DCB085894899C3A3796383E9BF9DE0CBFB08C9BF2DEF2E84F29D74 pack "%%F" --version V11 --verbose --patch-uasset --compression Oodle
+            .\repak.exe --aes-key 0C263D8C22DCB085894899C3A3796383E9BF9DE0CBFB08C9BF2DEF2E84F29D74 pack %%F --version V11 --verbose --patch-uasset --compression Oodle
             @popd
         ) else (
 			set "fileExt=%%~xF"
@@ -36,8 +36,8 @@ for %%F in (%*) do (
 				if exist "%%~dpnF\*" ( set /a keepDir = 1 )
 				
 				@pushd %%~dpF
-                .\repak.exe --aes-key 0C263D8C22DCB085894899C3A3796383E9BF9DE0CBFB08C9BF2DEF2E84F29D74 unpack "%%F" --verbose
-				@del "%%F"
+                .\repak.exe --aes-key 0C263D8C22DCB085894899C3A3796383E9BF9DE0CBFB08C9BF2DEF2E84F29D74 unpack %%F --verbose
+				@del %%F
                 .\repak.exe --aes-key 0C263D8C22DCB085894899C3A3796383E9BF9DE0CBFB08C9BF2DEF2E84F29D74 pack "%%~dpnF" --version V11 --verbose --patch-uasset --compression Oodle
                 @popd
 				
