@@ -3,7 +3,7 @@ resolver = "2"
 members = ["repak", "repak_cli"]
 
 [workspace.package]
-repository = "https://github.com/trumank/repak"
+repository = "https://github.com/natimerry/repak-rivals"
 authors = ["spuds", "trumank","natimerry"]
 license = "MIT OR Apache-2.0"
 version = "0.3.0"
@@ -27,3 +27,6 @@ hex = "0.4"
 [profile.dist]
 inherits = "release"
 lto = "thin"
+
+[repak_cli.metadata.dist]
+include = ["Scripts/fixMesh.bat", "Scripts/unrepak.bat", "Scripts/repakFolder.bat"]
