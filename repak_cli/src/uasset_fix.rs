@@ -178,7 +178,12 @@ pub fn read_exports<R: Read + Seek>(
 }
 
 static mut MAT_COUNT: i32 = 0;
-pub fn read_uexp(file: &str, file_size: u64, temp_file: &str, offsets: &Vec<i64>) -> io::Result<()> {
+pub fn read_uexp(
+    file: &str,
+    file_size: u64,
+    temp_file: &str,
+    offsets: &Vec<i64>,
+) -> io::Result<()> {
     let mut material_count = 0;
     let final_offset = offsets.last().unwrap() - file_size as i64;
 
@@ -220,8 +225,7 @@ pub fn read_uexp(file: &str, file_size: u64, temp_file: &str, offsets: &Vec<i64>
         let mut checked_bytes = [0; 3];
         match f.read_exact(&mut checked_bytes) {
             Ok(_) => (),
-            Err(e) => {
-                println!("No mats found breaking: {e}");
+            Err(_) => {
                 break;
             }
         }
@@ -251,9 +255,18 @@ pub fn read_uexp(file: &str, file_size: u64, temp_file: &str, offsets: &Vec<i64>
     }
 
     if !found {
-        println!("No suitable materials found. Skipping this mesh");
+        print!("No suitable materials found... ");
+        if file.contains("Skeleton")
+            || file.contains("Physics")
+            || file.contains("Anim")
+            || file.contains("Rig")
+            || file.contains("BP")
+        {
+            println!("but we can try skipping this!");
+            return Err(std::io::Error::new(std::io::ErrorKind::Other, "Skip this"));
+        }
         return Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
+            std::io::ErrorKind::InvalidData,
             "invalid mesh provided".to_string(),
         ));
     }

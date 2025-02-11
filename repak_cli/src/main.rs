@@ -8,7 +8,7 @@ use path_slash::PathExt;
 use rayon::prelude::*;
 use std::collections::BTreeMap;
 use std::fs::{self, File, OpenOptions};
-use std::io::{self, BufRead, BufReader, BufWriter, Write};
+use std::io::{self, BufRead, BufReader, BufWriter, ErrorKind, Write};
 use std::path::{Path, PathBuf};
 use strum::VariantNames;
 
@@ -505,16 +505,13 @@ fn pack(aes_key: Option<aes::Aes256>, args: ActionPack) -> Result<(), repak::Err
 
     let patched_files = BufReader::new(&file)
         .lines()
-        .map(|l| {
-            l.unwrap().clone()
-
-        }).collect::<Vec<_>>();
-
+        .map(|l| l.unwrap().clone())
+        .collect::<Vec<_>>();
 
     let mut cache_writer = BufWriter::new(&file);
 
-    if args.restore_assets{
-        for uassetfile in &uasset_files{
+    if args.restore_assets {
+        for uassetfile in &uasset_files {
             let dir_path = uassetfile.parent().unwrap();
             let uexp_file = dir_path.join(
                 uassetfile
@@ -525,8 +522,7 @@ fn pack(aes_key: Option<aes::Aes256>, args: ActionPack) -> Result<(), repak::Err
                     .replace(".uasset", ".uexp"),
             );
 
-            println!("Restoring {:?} and {:?}",uassetfile,uexp_file);
-
+            println!("Restoring {:?} and {:?}", uassetfile, uexp_file);
 
             fs::copy(
                 dir_path.join(format!(
@@ -534,18 +530,19 @@ fn pack(aes_key: Option<aes::Aes256>, args: ActionPack) -> Result<(), repak::Err
                     uexp_file.file_name().unwrap().to_str().unwrap()
                 )),
                 &uexp_file,
-            ).expect("Couldnt backup from .bak file, has this been repacked through repak?");
+            )
+            .expect("Couldnt backup from .bak file, has this been repacked through repak?");
             fs::copy(
                 dir_path.join(format!(
                     "{}.bak",
                     uassetfile.file_name().unwrap().to_str().unwrap()
                 )),
                 &uassetfile,
-            ).expect("Couldnt backup from .bak file, has this been repacked through repak?");
+            )
+            .expect("Couldnt backup from .bak file, has this been repacked through repak?");
             File::create(input_path.join("patched_files"))?; // truncates the file
         }
     }
-
 
     if args.patch_uasset {
         'outer: for uassetfile in &uasset_files {
@@ -578,14 +575,12 @@ fn pack(aes_key: Option<aes::Aes256>, args: ActionPack) -> Result<(), repak::Err
                 .to_slash()
                 .expect("failed to convert to slash path");
 
-
-            for i in &patched_files{
-                if i.as_str() == rel_uexp.to_string() || i.as_str() == rel_uasset.to_string(){
-                    println!("File {:?} has already been patched, skipping",i);
+            for i in &patched_files {
+                if i.as_str() == rel_uexp.to_string() || i.as_str() == rel_uasset.to_string() {
+                    println!("File {:?} has already been patched, skipping", i);
                     continue 'outer;
                 }
             }
-
 
             fs::copy(
                 &uexp_file,
@@ -612,7 +607,23 @@ fn pack(aes_key: Option<aes::Aes256>, args: ActionPack) -> Result<(), repak::Err
             let tmpfile = format!("{}.temp", uexp_file.to_str().unwrap());
 
             drop(rdr);
-            read_uexp(&*backup_file, backup_file_size, &tmpfile, &offsets)?;
+
+            let exp_rd = read_uexp(&*backup_file, backup_file_size, &tmpfile, &offsets);
+            match exp_rd {
+                Ok(_) => {}
+                Err(e) => match e.kind() {
+                    ErrorKind::InvalidData => {
+                        panic!("{}", e.to_string())
+                    },
+                    ErrorKind::Other => {
+                        fs::remove_file(&tmpfile)?;
+                        continue 'outer;
+                    }
+                    _ => {
+                        panic!("{}", e.to_string())
+                    }
+                },
+            }
             // fs::remove_file(&uexp_file)?;
 
             fs::copy(&tmpfile, &uexp_file)?;
