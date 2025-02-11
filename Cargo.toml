@@ -10,6 +10,12 @@ version = "0.2.2"
 edition = "2021"
 keywords = ["unreal-engine", "pak", "unrealpak"]
 
+
+[profile.release]
+lto = "thin"
+strip = true
+opt-level = 3
+
 [workspace.dependencies]
 aes = "0.8.4"
 base64 = "0.22.1"
