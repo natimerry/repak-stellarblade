@@ -510,6 +510,8 @@ fn pack(aes_key: Option<aes::Aes256>, args: ActionPack) -> Result<(), repak::Err
 
     let mut cache_writer = BufWriter::new(&file);
 
+    paths.push(patched_cache_file);
+
     if args.restore_assets {
         for uassetfile in &uasset_files {
             let dir_path = uassetfile.parent().unwrap();
