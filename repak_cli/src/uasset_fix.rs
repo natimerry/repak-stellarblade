@@ -215,7 +215,7 @@ pub fn read_uexp(
                 f.stream_position()?
             );
 
-            if max_bytes == file_size as i32{
+            if max_bytes == file_size as i32 {
                 break;
             }
             max_bytes = max(max_bytes + 0x50000, (file_size - starting_pos) as i32);
@@ -263,6 +263,8 @@ pub fn read_uexp(
             || file.contains("Anim")
             || file.contains("Rig")
             || file.contains("BP")
+            || !file.contains("SK_")
+        // if we fail to patch and it isnt a SK_ mod, we can probably skip it without issues
         {
             println!("but we can try skipping this!");
             return Err(std::io::Error::new(std::io::ErrorKind::Other, "Skip this"));
