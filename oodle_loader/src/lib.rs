@@ -1,6 +1,6 @@
-use std::{io, io::Read, sync::OnceLock};
+use std:: sync::OnceLock;
 use std::fs::File;
-use std::io::{ErrorKind, Write};
+use std::io:: Write;
 
 type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -94,34 +94,24 @@ mod oodle_lz {
         unsafe extern "system" fn(compressor: Compressor, rawSize: usize) -> usize;
 }
 
-static OODLE_VERSION: &str = "2.9.10";
 
 
 struct OodlePlatform {
-    path: &'static str,
     name: &'static str,
-    hash: &'static str,
+    bytes: &'static [u8],
 }
 
 #[cfg(target_os = "linux")]
 static OODLE_PLATFORM: OodlePlatform = OodlePlatform {
-    path: "linux/lib",
     name: "liboo2corelinux64.so.9",
-    hash: "ed7e98f70be1254a80644efd3ae442ff61f854a2fe9debb0b978b95289884e9c",
+    bytes: include_bytes!("../../liboo2corelinux64.so.9")
 };
 
-#[cfg(target_os = "macos")]
-static OODLE_PLATFORM: OodlePlatform = OodlePlatform {
-    path: "mac/lib",
-    name: "liboo2coremac64.2.9.10.dylib",
-    hash: "b09af35f6b84a61e2b6488495c7927e1cef789b969128fa1c845e51a475ec501",
-};
 
 #[cfg(windows)]
 static OODLE_PLATFORM: OodlePlatform = OodlePlatform {
-    path: "win/redist",
     name: "oo2core_9_win64.dll",
-    hash: "6f5d41a7892ea6b2db420f2458dad2f84a63901c9a93ce9497337b16c195f457",
+    bytes: include_bytes!("../../oo2core_9_win64.dll"),
 };
 
 
@@ -141,29 +131,13 @@ pub enum Error {
 }
 
 
-fn check_hash(buffer: &[u8]) -> Result<()> {
-    use sha2::{Digest, Sha256};
-
-    let mut hasher = Sha256::new();
-    hasher.update(buffer);
-    let hash = hex::encode(hasher.finalize());
-    if hash != OODLE_PLATFORM.hash {
-        return Err(Error::HashMismatch {
-            expected: OODLE_PLATFORM.hash.into(),
-            found: hash,
-        });
-    }
-
-    Ok(())
-}
 fn fetch_oodle() -> Result<std::path::PathBuf> {
     let oodle_path = std::env::current_exe()?.with_file_name(OODLE_PLATFORM.name);
     if !oodle_path.exists() {
         // fuck downloading the lib virustotal smacks me for it
         // we finna embed the whole DLL into our program
-        let bytes = include_bytes!("../../oo2core_9_win64.dll");
-        println!("Dumping oodle bytes");
-        File::create(&oodle_path)?.write_all(bytes)?;
+
+        File::create(&oodle_path)?.write_all(&OODLE_PLATFORM.bytes)?;
     }
     Ok(oodle_path)
 }
