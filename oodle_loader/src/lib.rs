@@ -1,4 +1,6 @@
-use std::{io::Read, sync::OnceLock};
+use std::{io, io::Read, sync::OnceLock};
+use std::fs::File;
+use std::io::{ErrorKind, Write};
 
 type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -93,7 +95,7 @@ mod oodle_lz {
 }
 
 static OODLE_VERSION: &str = "2.9.10";
-static OODLE_BASE_URL: &str = "https://github.com/WorkingRobot/OodleUE/raw/refs/heads/main/Engine/Source/Programs/Shared/EpicGames.Oodle/Sdk/";
+
 
 struct OodlePlatform {
     path: &'static str,
@@ -122,12 +124,7 @@ static OODLE_PLATFORM: OodlePlatform = OodlePlatform {
     hash: "6f5d41a7892ea6b2db420f2458dad2f84a63901c9a93ce9497337b16c195f457",
 };
 
-fn url() -> String {
-    format!(
-        "{OODLE_BASE_URL}/{}/{}/{}",
-        OODLE_VERSION, OODLE_PLATFORM.path, OODLE_PLATFORM.name
-    )
-}
+
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -139,16 +136,10 @@ pub enum Error {
     InitializationFailed,
     #[error("IO error {0:?}")]
     Io(#[from] std::io::Error),
-    #[error("ureq error {0:?}")]
-    Ureq(Box<ureq::Error>),
     #[error("Oodle libloading error {0:?}")]
     LibLoading(#[from] libloading::Error),
 }
-impl From<ureq::Error> for Error {
-    fn from(value: ureq::Error) -> Self {
-        Self::Ureq(value.into())
-    }
-}
+
 
 fn check_hash(buffer: &[u8]) -> Result<()> {
     use sha2::{Digest, Sha256};
@@ -165,20 +156,15 @@ fn check_hash(buffer: &[u8]) -> Result<()> {
 
     Ok(())
 }
-
 fn fetch_oodle() -> Result<std::path::PathBuf> {
     let oodle_path = std::env::current_exe()?.with_file_name(OODLE_PLATFORM.name);
     if !oodle_path.exists() {
-        let mut buffer = vec![];
-        ureq::get(&url())
-            .call()?
-            .into_reader()
-            .read_to_end(&mut buffer)?;
-        check_hash(&buffer)?;
-        std::fs::write(&oodle_path, buffer)?;
+        // fuck downloading the lib virustotal smacks me for it
+        // we finna embed the whole DLL into our program
+        let bytes = include_bytes!("../../oo2core_9_win64.dll");
+        println!("Dumping oodle bytes");
+        File::create(&oodle_path)?.write_all(bytes)?;
     }
-    // don't check existing file to allow user to substitute other versions
-    // check_hash(&std::fs::read(&oodle_path)?)?;
     Ok(oodle_path)
 }
 
@@ -255,7 +241,6 @@ fn load_oodle() -> Result<Oodle> {
     let path = fetch_oodle()?;
     unsafe {
         let library = libloading::Library::new(path)?;
-
         Ok(Oodle {
             compress: *library.get(b"OodleLZ_Compress")?,
             decompress: *library.get(b"OodleLZ_Decompress")?,

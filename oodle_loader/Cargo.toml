@@ -8,7 +8,6 @@ edition.workspace = true
 
 [dependencies]
 libloading = "0.8"
-ureq = "2.12"
 hex = { workspace = true }
 sha2 = "0.10.8"
 thiserror = "2.0.11"

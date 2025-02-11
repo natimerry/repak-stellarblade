@@ -11,6 +11,7 @@ edition = "2021"
 keywords = ["unreal-engine", "pak", "unrealpak"]
 
 
+
 [profile.release]
 lto = "thin"
 strip = true
