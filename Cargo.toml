@@ -6,7 +6,7 @@ members = ["repak", "repak_cli"]
 repository = "https://github.com/natimerry/repak-rivals"
 authors = ["spuds", "trumank","natimerry"]
 license = "MIT OR Apache-2.0"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2021"
 keywords = ["marvel-rivals","unreal-engine", "pak", "unrealpak"]
 
@@ -28,5 +28,3 @@ hex = "0.4"
 inherits = "release"
 lto = "thin"
 
-[repak_cli.metadata.dist]
-include = ["Scripts/fixMesh.bat", "Scripts/unrepak.bat", "Scripts/repakFolder.bat"]
