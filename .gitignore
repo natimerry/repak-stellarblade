@@ -3,3 +3,4 @@
 *.pak
 *.diff
 /Content/
+.idea
