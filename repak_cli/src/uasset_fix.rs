@@ -4,6 +4,7 @@ use std::fs::{File, OpenOptions};
 use std::io;
 use std::io::{BufReader, BufWriter, Read, Seek, SeekFrom, Write};
 use std::path::PathBuf;
+use colored::Colorize;
 
 static mut BULK_OFFSET: usize = 0;
 const UASSET_MAGIC: usize = 0x9E2A83C1;
@@ -149,7 +150,7 @@ pub fn read_exports<R: Read + Seek>(
         if i == export_count - 1 {
             unsafe {
                 FINAL_SIZE_OFFSET = f.stream_position()?;
-                println!("FinalSizeOffset: {}", FINAL_SIZE_OFFSET);
+                println!("\tFinalSizeOffset: {:#02X}", FINAL_SIZE_OFFSET);
             }
         }
 
@@ -196,7 +197,7 @@ pub fn read_uexp(
     o.write_all(&buffer)?;
 
     println!(
-        "Starting search for data at Offset: {:X}",
+        "\tStarting search for data at Offset: {:#01X}",
         f.stream_position()?
     );
 
@@ -210,7 +211,7 @@ pub fn read_uexp(
     'primary: loop {
         if current_bytes > max_bytes {
             println!(
-                "Failed to find data within range {:X} - {:X}",
+                "\tFailed to find data within range {:#1X} - {:#1X}",
                 starting_pos,
                 f.stream_position()?
             );
@@ -219,7 +220,7 @@ pub fn read_uexp(
                 break;
             }
             max_bytes = max(max_bytes + 0x50000, (file_size - starting_pos) as i32);
-            println!("Increasing range to {}", max_bytes);
+            println!("\tIncreasing range to {}", max_bytes);
 
             continue;
         }
@@ -257,7 +258,7 @@ pub fn read_uexp(
     }
 
     if !found {
-        print!("No suitable materials found... ");
+        print!("{}", "\tNo suitable materials found... ".red());
         if file.contains("Skeleton")
             || file.contains("Physics")
             || file.contains("Anim")
@@ -266,7 +267,7 @@ pub fn read_uexp(
             || !file.contains("SK_")
         // if we fail to patch and it isnt a SK_ mod, we can probably skip it without issues
         {
-            println!("but we can try skipping this!");
+            println!("{}", "but we can try skipping this!".green());
             return Err(std::io::Error::new(std::io::ErrorKind::Other, "Skip this"));
         }
         return Err(std::io::Error::new(
@@ -274,7 +275,7 @@ pub fn read_uexp(
             "invalid mesh provided".to_string(),
         ));
     }
-    println!("Found data at Offset: {:X}", f.stream_position()?);
+    println!("{} {:1X}", "\t\tFound data at Offset: ".green(), f.stream_position()?);
     let ending_pos = f.stream_position()?;
 
     f.seek(SeekFrom::Start(starting_pos))?;
@@ -282,7 +283,7 @@ pub fn read_uexp(
     f.read_exact(&mut buffer)?;
     o.write_all(&buffer)?;
 
-    println!("Found {} materials", material_count);
+    println!("\tFound {} materials", material_count.to_string().bright_yellow());
 
     for _ in 0..material_count {
         let mut buffer = vec![0; 40];
@@ -304,7 +305,7 @@ pub fn read_uexp(
 }
 
 pub unsafe fn clean_uasset(file: PathBuf, sizes: &[i64]) -> io::Result<()> {
-    println!("Starting Asset Cleaning...");
+    println!("\tStarting Asset Cleaning...");
 
     let final_size = sizes.last().unwrap() + (4 * MAT_COUNT as i64);
 
@@ -321,6 +322,6 @@ pub unsafe fn clean_uasset(file: PathBuf, sizes: &[i64]) -> io::Result<()> {
     f.write_i64::<LittleEndian>(fixed_offset)?;
     f.flush()?;
 
-    println!("Asset Cleaning Complete!");
+    println!("{}", "\tAsset Cleaning Complete!".green());
     Ok(())
 }

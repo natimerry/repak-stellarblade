@@ -10,6 +10,7 @@ use std::collections::BTreeMap;
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, BufRead, BufReader, BufWriter, ErrorKind, Write};
 use std::path::{Path, PathBuf};
+use colored::Colorize;
 use strum::VariantNames;
 
 #[derive(Parser, Debug)]
@@ -580,7 +581,7 @@ fn pack(aes_key: Option<aes::Aes256>, args: ActionPack) -> Result<(), repak::Err
 
             for i in &patched_files {
                 if i.as_str() == rel_uexp.to_string() || i.as_str() == rel_uasset.to_string() {
-                    println!("File {:?} has already been patched, skipping", i);
+                    println!("Skipping {} (File has already been patched before)", i.yellow());
                     continue 'outer;
                 }
             }
@@ -600,7 +601,7 @@ fn pack(aes_key: Option<aes::Aes256>, args: ActionPack) -> Result<(), repak::Err
                 )),
             )?;
 
-            println!("Processing {:?}", &uassetfile);
+            println!("Processing {}", &uassetfile.to_str().unwrap().yellow());
             let mut rdr = BufReader::new(File::open(uassetfile.clone())?);
             let (exp_cnt, exp_offset) = read_uasset(&mut rdr)?;
             read_exports(&mut rdr, &mut sizes, &mut offsets, exp_offset, exp_cnt)?;
