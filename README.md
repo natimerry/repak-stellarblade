@@ -20,7 +20,7 @@ As for modders:
 `repakMod.bat` can also be used to pack folders into `.pak` files! There's also a `.bat` script for unpacking `.pak` files into folders too if you need it.
 
 
-*If you like my support on this game consider [buying me a coffee](https://buymeacoffee.com/natimerry)*
+*If you like my support on this game consider [buying me a coffee](https://paypal.me/sohamnandy2006)*
 
 
 ## acknowledgements
