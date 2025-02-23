@@ -1,11 +1,10 @@
-mod uasset_fix;
 
-use crate::uasset_fix::{clean_uasset, read_exports, read_uasset, read_uexp};
 use clap::builder::TypedValueParser;
 use clap::{Parser, Subcommand};
 use path_clean::PathClean;
 use path_slash::PathExt;
 use rayon::prelude::*;
+use uasset_mesh_patch_rivals::{Logger, PatchFixer};
 use std::collections::BTreeMap;
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, BufRead, BufReader, BufWriter, ErrorKind, Write};
@@ -546,7 +545,19 @@ fn pack(aes_key: Option<aes::Aes256>, args: ActionPack) -> Result<(), repak::Err
             File::create(input_path.join("patched_files"))?; // truncates the file
         }
     }
+    struct PrintLogger;
+    impl Logger for PrintLogger{
+        fn log<S: Into<String>>(&self,buf: S) {
+            let s = Into::<String>::into(buf);
+            println!("{}", s);
+        }
+    }
 
+    let print_logger = PrintLogger;
+    let Fixer = PatchFixer{
+        logger: print_logger,
+    }
+    
     if args.patch_uasset {
         'outer: for uassetfile in &uasset_files {
             let mut sizes: Vec<i64> = vec![];
@@ -612,7 +623,11 @@ fn pack(aes_key: Option<aes::Aes256>, args: ActionPack) -> Result<(), repak::Err
 
             drop(rdr);
 
-            let exp_rd = read_uexp(&*backup_file, backup_file_size, &tmpfile, &offsets);
+
+            let mut r = BufReader::new(File::open(&backup_file)?);
+            let mut o = BufWriter::new(File::create(&tmpfile)?);
+
+            let exp_rd = read_uexp(&mut r,  backup_file_size,&*backup_file, &mut o, &offsets);
             match exp_rd {
                 Ok(_) => {}
                 Err(e) => match e.kind() {
