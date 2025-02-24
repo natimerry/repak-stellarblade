@@ -166,10 +166,10 @@ impl Entry {
         writer.write_u64::<LE>(self.compressed)?;
         writer.write_u64::<LE>(self.uncompressed)?;
         let compression = self.compression_slot.map_or(0, |n| n + 1);
-        // match compression_index_size(version) {
-        //     CompressionIndexSize::U8 => writer.write_u8(compression.try_into().unwrap())?,
-        //     CompressionIndexSize::U32 => writer.write_u32::<LE>(compression)?,
-        // }
+        match compression_index_size(version) {
+            CompressionIndexSize::U8 => writer.write_u8(compression.try_into().unwrap())?,
+            CompressionIndexSize::U32 => writer.write_u32::<LE>(compression)?,
+        }
 
         if version.version_major() == VersionMajor::Initial {
             writer.write_u64::<LE>(self.timestamp.unwrap_or_default())?;

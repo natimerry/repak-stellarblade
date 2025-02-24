@@ -1,5 +1,5 @@
 [package]
-name = "mesh-patcher"
+name = "repak-gui"
 repository.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -9,7 +9,13 @@ keywords.workspace = true
 
 [dependencies]
 eframe = "0.31.0"
-egui = "0.31.0"
+eg = "0.1.2"
+egui_flex = "0.3.0"
+env_logger = "0.11.6"
 rfd = "0.15.2"
-uasset-mesh-patch-rivals = {git = "https://github.com/natimerry/uasset-mesh-patch-rivals"}
-xdelta3 = "0.1.5"
+log = "0.4.26"
+egui_virtual_list = "0.7.0"
+repak = { path = "../repak" }
+aes.workspace = true
+hex.workspace = true
+base64.workspace = true

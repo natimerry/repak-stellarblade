@@ -4,3 +4,4 @@
 *.diff
 /Content/
 .idea
+/repak-gui/cross/

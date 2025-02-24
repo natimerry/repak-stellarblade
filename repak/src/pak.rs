@@ -91,7 +91,7 @@ pub struct PakWriter<W: Write + Seek> {
 pub(crate) struct Pak {
     version: Version,
     mount_point: String,
-    index_offset: Option<u64>,
+    pub index_offset: Option<u64>,
     index: Index,
     encrypted_index: bool,
     encryption_guid: Option<u128>,
