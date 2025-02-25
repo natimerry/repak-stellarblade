@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 mod data;
-mod entry;
+pub mod entry;
 mod error;
 mod ext;
 mod footer;

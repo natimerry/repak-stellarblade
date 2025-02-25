@@ -9,13 +9,16 @@ keywords.workspace = true
 
 [dependencies]
 eframe = "0.31.0"
-eg = "0.1.2"
 egui_flex = "0.3.0"
 env_logger = "0.11.6"
 rfd = "0.15.2"
 log = "0.4.26"
-egui_virtual_list = "0.7.0"
 repak = { path = "../repak" }
 aes.workspace = true
 hex.workspace = true
 base64.workspace = true
+egui_extras = { version = "0.31.0", features = ["all_loaders"] }
+sha2 = "0.10.8"
+serde = { version = "1.0.218", features = ["derive"] }
+serde_json = "1.0.139"
+dirs = "6.0.0"

@@ -1,27 +1,39 @@
+mod file_table;
+
 use crate::egui::RichText;
+use crate::file_table::FileTable;
 use eframe::egui::cache::FrameCache;
 use eframe::egui::{
     self, style::Selection, Align, Button, CollapsingHeader, Color32, Frame, Grid, Label, Layout,
-    ScrollArea, SelectableLabel, Stroke, Style, TextEdit, TextStyle, Theme, Visuals, Widget,
+    ScrollArea, SelectableLabel, Stroke, Style, TextEdit, TextStyle, Theme, Ui, Visuals, Widget,
 };
 use egui_flex::{item, Flex, FlexAlign};
-use log::debug;
+use log::{debug, info};
 use repak::PakReader;
 use rfd::FileDialog;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::File;
-use std::io;
+use std::hash::Hash;
 use std::io::BufReader;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::usize::MAX;
+use std::{fs, io};
 // use eframe::egui::WidgetText::RichText;
 
+#[derive(Deserialize, Serialize)]
 struct RepakModManager {
     game_path: PathBuf,
     default_font_size: f32,
+    #[serde(skip)]
     current_pak_file_idx: Option<usize>,
+    #[serde(skip)]
     pak_files: Vec<(PakReader, PathBuf)>,
+    #[serde(skip)]
+    table: Option<FileTable>,
+    #[serde(skip)]
+    dropped_files: Vec<egui::DroppedFile>,
 }
 fn use_dark_red_accent(style: &mut Style) {
     style.visuals.hyperlink_color = Color32::from_hex("#f71034").expect("Invalid color");
@@ -162,12 +174,13 @@ fn get_current_pak_characteristics(mod_contents: Vec<String>) -> String {
 impl RepakModManager {
     fn new(cc: &eframe::CreationContext<'_>) -> Self {
         setup_custom_style(&cc.egui_ctx);
-
         let x = Self {
             game_path: PathBuf::new(),
             default_font_size: 18.0,
             pak_files: vec![],
             current_pak_file_idx: None,
+            table: None,
+            dropped_files: vec![],
         };
         set_custom_font_size(&cc.egui_ctx, x.default_font_size);
         x
@@ -201,7 +214,7 @@ impl RepakModManager {
             self.pak_files = vecs;
         }
     }
-    fn list_pak_files(&self, ui: &mut egui::Ui) -> Result<(), repak::Error> {
+    fn list_pak_contents(&mut self, ui: &mut egui::Ui) -> Result<(), repak::Error> {
         if let None = self.current_pak_file_idx {
             return Ok(());
         }
@@ -211,27 +224,19 @@ impl RepakModManager {
                 .unwrap();
         builder = builder.key(aes_key.0);
         let pak = &self.pak_files[self.current_pak_file_idx.unwrap()].0;
-        let full_paths = pak.files().into_iter().collect::<Vec<_>>();
 
-        ui.vertical(|ui| {
-            ui.label("Files");
-            ScrollArea::vertical()
-                .auto_shrink([false, false])
-                .show(ui, |ui| {
-                    for (i, file) in full_paths.iter().enumerate() {
-                        Frame::default()
-                            .stroke(ui.style().visuals.widgets.noninteractive.bg_stroke) // Border style
-                            .outer_margin(egui::Margin::same(1)) // Space around the frame
-                            .inner_margin(egui::Margin::same(1)) // Space inside the frame
-                            .show(ui, |ui| {
-                                ui.style_mut().override_text_style = Some(egui::TextStyle::Small);
+        let pak_path = self.pak_files[self.current_pak_file_idx.unwrap()].1.clone();
 
-                                ui.add(SelectableLabel::new(false, file.to_string()));
-                                // Selectable text
-                            });
-                    }
-                });
-        });
+        ui.label("Files");
+        ui.separator();
+        ScrollArea::horizontal()
+            .auto_shrink([false, false])
+            .show(ui, |ui| {
+                let mut table = &mut self.table;
+                if let Some(ref mut table) = table {
+                    table.table_ui(ui);
+                }
+            });
 
         Ok(())
     }
@@ -242,6 +247,7 @@ impl RepakModManager {
         }
         use egui::{Label, RichText};
         let pak = &self.pak_files[self.current_pak_file_idx.unwrap()].0;
+        let pak_path = self.pak_files[self.current_pak_file_idx.unwrap()].1.clone();
         let full_paths = pak.files().into_iter().collect::<Vec<_>>();
 
         ui.collapsing("Encryption details", |ui| {
@@ -271,15 +277,22 @@ impl RepakModManager {
                 ui.add(Label::new(RichText::new("Version: ").strong()));
                 ui.add(Label::new(format!("{:?}", pak.version())));
             });
-
-            ui.horizontal(|ui| {
-                ui.add(Label::new(RichText::new("Mod type: ").strong()));
-                ui.add(Label::new(format!(
-                    "{}",
-                    get_current_pak_characteristics(full_paths.clone())
-                )));
-            });
         });
+        ui.horizontal(|ui| {
+            ui.add(Label::new(
+                RichText::new("Mod type: ")
+                    .strong()
+                    .size(self.default_font_size + 1.),
+            ));
+            ui.add(Label::new(format!(
+                "{}",
+                get_current_pak_characteristics(full_paths.clone())
+            )));
+        });
+        ui.add(Label::new(format!("{:?}",&self.dropped_files)));
+        if let None = self.table {
+            self.table = Some(FileTable::new(pak, &pak_path));
+        }
     }
     fn show_pak_files_in_dir(&mut self, ui: &mut egui::Ui) {
         ScrollArea::vertical()
@@ -288,7 +301,7 @@ impl RepakModManager {
                 ui.vertical(|ui| {
                     for (i, pak_file) in self.pak_files.iter().enumerate() {
                         let selected = true;
-                        if let Some(idx) = self.current_pak_file_idx {}
+                        if let Some(_idx) = self.current_pak_file_idx {}
                         let pakfile = ui.selectable_label(
                             i == self.current_pak_file_idx.unwrap_or(MAX),
                             pak_file
@@ -304,6 +317,64 @@ impl RepakModManager {
                     }
                 });
             });
+    }
+    fn config_path() -> PathBuf {
+        let mut path = dirs::config_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join("repak_mod_manager");
+        if !path.exists() {
+            fs::create_dir_all(&path).unwrap();
+            info!("Created config directory: {}", path.to_string_lossy());
+        }
+        path.push("repak_mod_manager.json");
+        path
+    }
+
+    fn load(ctx: &eframe::CreationContext) -> std::io::Result<Self> {
+        let path = Self::config_path();
+        if path.exists() {
+            info!("Loading config: {}", path.to_string_lossy());
+            let data = fs::read_to_string(path)?;
+            let mut config: Self = serde_json::from_str(&data)?;
+            set_custom_font_size(&ctx.egui_ctx, config.default_font_size);
+            config.collect_pak_files();
+            Ok(config)
+        } else {
+            info!(
+                "First Launch creating new directory: {}",
+                path.to_string_lossy()
+            );
+            Ok(Self::new(ctx)) // If config doesn't exist, return default settings
+        }
+    }
+    fn save_state(&self) -> std::io::Result<()> {
+        let path = Self::config_path();
+        let json = serde_json::to_string_pretty(self)?;
+        info!("Saving config: {}", path.to_string_lossy());
+        fs::write(path, json)?;
+        Ok(())
+    }
+
+
+    /// Preview hovering files:
+    fn preview_files_being_dropped(ctx: &egui::Context,rect: egui::Rect) {
+        use egui::{Align2, Color32, Id, LayerId, Order, TextStyle};
+        use std::fmt::Write as _;
+
+        if !ctx.input(|i| i.raw.hovered_files.is_empty()) {
+            let painter =
+                ctx.layer_painter(LayerId::new(Order::Foreground, Id::new("file_drop_target")));
+
+
+            painter.rect_filled(rect, 0.0, Color32::from_black_alpha(192));
+            painter.text(
+                rect.center(),
+                Align2::CENTER_CENTER,
+                "Add new mod files here",
+                TextStyle::Heading.resolve(&ctx.style()),
+                Color32::WHITE,
+            );
+        }
     }
 }
 
@@ -322,7 +393,6 @@ impl eframe::App for RepakModManager {
                         egui::Slider::new(&mut self.default_font_size, 12.0..=32.0)
                             .text("Font size"),
                     );
-
                     set_custom_font_size(ui.ctx(), self.default_font_size);
                     ui.horizontal(|ui| {
                         let mode = match ui.ctx().style().visuals.dark_mode {
@@ -334,14 +404,11 @@ impl eframe::App for RepakModManager {
                     });
                 });
             });
-        });
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.vertical_centered(|ui| {
-                ui.heading("RepakRivals Mod Manager");
-            });
             ui.separator();
-            ui.horizontal(|ui| {
-                Flex::horizontal().w_full().show(ui, |flex_ui| {
+            Flex::horizontal()
+                .w_full()
+                .align_items(FlexAlign::Center)
+                .show(ui, |flex_ui| {
                     flex_ui.add(item(), Label::new("Mod folder:"));
                     flex_ui.add(
                         item().grow(1.0),
@@ -375,41 +442,49 @@ impl eframe::App for RepakModManager {
                             }
                         }
                     });
-                })
-            });
+                });
             ui.separator();
+        });
 
-            Flex::horizontal().w_auto().h_auto().show(ui, |flex_ui| {
-                flex_ui.add_ui(item(), |ui| {
+        egui::SidePanel::left("left_panel")
+            .min_width(300.)
+            .show(ctx, |ui| {
+                Self::preview_files_being_dropped(&ctx,ui.available_rect_before_wrap());
+
+                ui.vertical(|ui| {
+                    ui.set_height(ui.available_height());
+                    ui.label("Mod files");
                     ui.group(|ui| {
-                        ui.set_height(ui.available_height());
-
-                        ui.vertical(|ui| {
-                            ui.label("Pak files");
-                            ui.group(|ui| {
-                                ui.set_width(ui.available_width() * 0.2);
-                                ui.set_height(ui.available_height() * 0.6);
-                                self.show_pak_files_in_dir(ui);
-                            });
-                            ui.label("Pak details");
-                            ui.group(|ui| {
-                                ui.set_height(ui.available_height());
-                                ui.set_width(ui.available_width() * 0.2);
-
-                                self.show_pak_details(ui);
-                            });
-                        });
+                        ui.set_width(ui.available_width());
+                        ui.set_height(ui.available_height() * 0.6);
+                        self.show_pak_files_in_dir(ui);
                     });
-                });
 
-                flex_ui.add_ui(item().grow(1.).align_self(FlexAlign::End), |ui| {
+                    ui.separator();
+
+                    ui.label("Details");
+
                     ui.group(|ui| {
-                        ui.set_width(ui.available_width() * 0.8);
                         ui.set_height(ui.available_height());
-                        self.list_pak_files(ui).expect("TODO: panic message");
+                        ui.set_width(ui.available_width());
+                        self.show_pak_details(ui);
                     });
                 });
             });
+
+        egui::CentralPanel::default().show(ctx, |ui| {
+            self.list_pak_contents(ui).expect("TODO: panic message");
+        });
+
+        if ctx.input(|i| i.viewport().close_requested()) {
+            self.save_state().unwrap();
+        }
+
+        // Collect dropped files:
+        ctx.input(|i| {
+            if !i.raw.dropped_files.is_empty() {
+                self.dropped_files.clone_from(&i.raw.dropped_files);
+            }
         });
     }
 }
@@ -418,19 +493,23 @@ fn main() {
     env_logger::init();
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_inner_size([1280.0, 720.0])
-            .with_max_inner_size([1280.0, 720.0])
-            .with_min_inner_size([1280.0, 720.]),
+            .with_inner_size([1366.0, 768.0])
+            .with_min_inner_size([1280.0, 720.])
+            .with_drag_and_drop(true),
 
         ..Default::default()
     };
+
     eframe::run_native(
         "Repak GUI",
         options,
         Box::new(|cc| {
+
             cc.egui_ctx
                 .style_mut(|style| style.visuals.dark_mode = true);
-            Ok(Box::new(RepakModManager::new(cc)))
+            Ok(Box::new(
+                RepakModManager::load(cc).expect("Unable to load config"),
+            ))
         }),
     )
     .expect("Unable to spawn windows");
