@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = [ "mesh-patcher","repak", "repak_cli"]
+members = [ "repak", "repak_cli"]
 
 [workspace.package]
 repository = "https://github.com/natimerry/repak-rivals"
