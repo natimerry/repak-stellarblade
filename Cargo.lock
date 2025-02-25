@@ -3648,10 +3648,9 @@ checksum = "1dccffe3ce07af9386bfd29e80c0ab1a8205a2fc34e4bcd40364df902cfa8f3f"
 [[package]]
 name = "uasset-mesh-patch-rivals"
 version = "0.1.0"
-source = "git+https://github.com/natimerry/uasset-mesh-patch-rivals#5f8052ca395b082bf5ea1a969dbc307422fc1740"
+source = "git+https://github.com/natimerry/uasset-mesh-patch-rivals#a9e9f339e0039f76e498455b1519375b336c6a32"
 dependencies = [
  "byteorder",
- "colored",
 ]
 
 [[package]]
