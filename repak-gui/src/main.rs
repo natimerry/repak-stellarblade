@@ -1,14 +1,17 @@
 mod file_table;
+mod install_mod;
+mod utils;
 
 use crate::egui::RichText;
 use crate::file_table::FileTable;
+use crate::install_mod::{map_dropped_file_to_mods, ModInstallRequest};
 use eframe::egui::cache::FrameCache;
 use eframe::egui::{
     self, style::Selection, Align, Button, CollapsingHeader, Color32, Frame, Grid, Label, Layout,
     ScrollArea, SelectableLabel, Stroke, Style, TextEdit, TextStyle, Theme, Ui, Visuals, Widget,
 };
 use egui_flex::{item, Flex, FlexAlign};
-use log::{debug, info};
+use log::{debug, error, info, warn};
 use repak::PakReader;
 use rfd::FileDialog;
 use serde::{Deserialize, Serialize};
@@ -20,9 +23,11 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::usize::MAX;
 use std::{fs, io};
+use repak::utils::AesKey;
+use crate::utils::get_current_pak_characteristics;
 // use eframe::egui::WidgetText::RichText;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Default)]
 struct RepakModManager {
     game_path: PathBuf,
     default_font_size: f32,
@@ -34,7 +39,12 @@ struct RepakModManager {
     table: Option<FileTable>,
     #[serde(skip)]
     dropped_files: Vec<egui::DroppedFile>,
+    #[serde(skip)]
+    file_drop_viewport_open: bool,
+    #[serde(skip)]
+    install_mod_dialog: Option<ModInstallRequest>,
 }
+
 fn use_dark_red_accent(style: &mut Style) {
     style.visuals.hyperlink_color = Color32::from_hex("#f71034").expect("Invalid color");
     style.visuals.text_cursor.stroke.color = Color32::from_hex("#941428").unwrap();
@@ -42,9 +52,11 @@ fn use_dark_red_accent(style: &mut Style) {
         bg_fill: Color32::from_rgba_unmultiplied(241, 24, 14, 60),
         stroke: Stroke::new(1.0, Color32::from_hex("#000000").unwrap()),
     };
+
+    style.visuals.selection.bg_fill = Color32::from_rgba_unmultiplied(241, 24, 14, 60);
 }
 
-fn setup_custom_style(ctx: &egui::Context) {
+pub fn setup_custom_style(ctx: &egui::Context) {
     ctx.style_mut_of(Theme::Dark, use_dark_red_accent);
     ctx.style_mut_of(Theme::Light, use_dark_red_accent);
 }
@@ -76,100 +88,8 @@ fn set_custom_font_size(ctx: &egui::Context, size: f32) {
     ctx.set_style(style);
 }
 
-#[derive(Debug, Clone)]
-struct AesKey(aes::Aes256);
-impl std::str::FromStr for AesKey {
-    type Err = repak::Error;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        use aes::cipher::KeyInit;
-        use base64::{engine::general_purpose, Engine as _};
-        let try_parse = |mut bytes: Vec<_>| {
-            bytes.chunks_mut(4).for_each(|c| c.reverse());
-            aes::Aes256::new_from_slice(&bytes).ok().map(AesKey)
-        };
-        hex::decode(s.strip_prefix("0x").unwrap_or(s))
-            .ok()
-            .and_then(try_parse)
-            .or_else(|| {
-                general_purpose::STANDARD_NO_PAD
-                    .decode(s.trim_end_matches('='))
-                    .ok()
-                    .and_then(try_parse)
-            })
-            .ok_or(repak::Error::Aes)
-    }
-}
-fn get_current_pak_characteristics(mod_contents: Vec<String>) -> String {
-    let character_map: HashMap<&str, &str> = [
-        ("1011", "Hulk"),
-        ("1014", "Punisher"),
-        ("1015", "Storm"),
-        ("1016", "Loki"),
-        ("1018", "Dr.Strange"),
-        ("1020", "Mantis"),
-        ("1021", "Hawkeye"),
-        ("1022", "Captain America"),
-        ("1023", "Raccoon"),
-        ("1024", "Hela"),
-        ("1025", "CND"),
-        ("1026", "Black Panther"),
-        ("1027", "Groot"),
-        ("1029", "Magik"),
-        ("1030", "Moonknight"),
-        ("1031", "Luna Snow"),
-        ("1032", "Squirrel Girl"),
-        ("1033", "Black Widow"),
-        ("1034", "Iron Man"),
-        ("1035", "Venom"),
-        ("1036", "Spider Man"),
-        ("1037", "Magneto"),
-        ("1038", "Scarlet Witch"),
-        ("1039", "Thor"),
-        ("1040", "Mr Fantastic"),
-        ("1041", "Winter Soldier"),
-        ("1042", "Peni Parker"),
-        ("1043", "Starlord"),
-        ("1045", "Namor"),
-        ("1046", "Adam Warlock"),
-        ("1047", "Jeff"),
-        ("1048", "Psylocke"),
-        ("1049", "Wolverine"),
-        ("1050", "Invisible Woman"),
-        ("1052", "Iron Fist"),
-        ("4017", "Announcer (Galacta)"),
-        ("8021", "Loki's extra yapping"),
-        ("8031", "Random NPCs"),
-        ("8032", "Random NPCs"),
-        ("8041", "Random NPCs"),
-        ("8042", "Random NPCs"),
-        ("8043", "Random NPCs"),
-        ("8063", "Male NPC"),
-    ]
-    .iter()
-    .cloned()
-    .collect();
 
-    for file in &mod_contents {
-        if let Some(stripped) = file.strip_prefix("Marvel/Content/Marvel/") {
-            let category = stripped.split('/').into_iter().next().unwrap_or_default();
 
-            if category == "Characters" {
-                // Extract the ID from the file path
-                let parts: Vec<&str> = stripped.split('/').collect();
-                if parts.len() > 1 {
-                    let id = parts[1]; // Assuming ID is in second position
-                    if let Some(character_name) = character_map.get(id) {
-                        return format!("Character ({})", character_name);
-                    }
-                }
-                return "Character (Unknown)".to_string();
-            } else if category == "UI" {
-                return "UI".to_string();
-            }
-        }
-    }
-    "Unknown".to_string()
-}
 
 impl RepakModManager {
     fn new(cc: &eframe::CreationContext<'_>) -> Self {
@@ -181,6 +101,7 @@ impl RepakModManager {
             current_pak_file_idx: None,
             table: None,
             dropped_files: vec![],
+            ..Default::default()
         };
         set_custom_font_size(&cc.egui_ctx, x.default_font_size);
         x
@@ -204,11 +125,16 @@ impl RepakModManager {
                 if path.extension().unwrap_or_default() != "pak" {
                     continue;
                 }
+                let mut disabled = false;
+                if path.extension().unwrap_or_default() == "pak_disabled" {
+                    disabled = true;
+                }
                 let mut builder = repak::PakBuilder::new();
                 builder = builder.key(aes_key.0.clone());
                 let pak = builder
                     .reader(&mut BufReader::new(File::open(path.clone()).unwrap()))
                     .unwrap();
+
                 vecs.push((pak, path));
             }
             self.pak_files = vecs;
@@ -289,7 +215,7 @@ impl RepakModManager {
                 get_current_pak_characteristics(full_paths.clone())
             )));
         });
-        ui.add(Label::new(format!("{:?}",&self.dropped_files)));
+        ui.add(Label::new(format!("{:?}", &self.dropped_files)));
         if let None = self.table {
             self.table = Some(FileTable::new(pak, &pak_path));
         }
@@ -321,7 +247,7 @@ impl RepakModManager {
     fn config_path() -> PathBuf {
         let mut path = dirs::config_dir()
             .unwrap_or_else(|| PathBuf::from("."))
-            .join("repak_mod_manager");
+            .join("repak_manager");
         if !path.exists() {
             fs::create_dir_all(&path).unwrap();
             info!("Created config directory: {}", path.to_string_lossy());
@@ -355,9 +281,8 @@ impl RepakModManager {
         Ok(())
     }
 
-
     /// Preview hovering files:
-    fn preview_files_being_dropped(ctx: &egui::Context,rect: egui::Rect) {
+    fn preview_files_being_dropped(ctx: &egui::Context, rect: egui::Rect) {
         use egui::{Align2, Color32, Id, LayerId, Order, TextStyle};
         use std::fmt::Write as _;
 
@@ -365,8 +290,7 @@ impl RepakModManager {
             let painter =
                 ctx.layer_painter(LayerId::new(Order::Foreground, Id::new("file_drop_target")));
 
-
-            painter.rect_filled(rect, 0.0, Color32::from_black_alpha(192));
+            painter.rect_filled(rect, 0.0, Color32::from_rgba_unmultiplied(241, 24, 14, 40));
             painter.text(
                 rect.center(),
                 Align2::CENTER_CENTER,
@@ -377,9 +301,46 @@ impl RepakModManager {
         }
     }
 }
-
 impl eframe::App for RepakModManager {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        if let Some(ref mut install_mod) = self.install_mod_dialog {
+            if self.file_drop_viewport_open{
+                install_mod.new_mod_dialog(&ctx,&mut self.file_drop_viewport_open);
+            }
+        }
+
+        ctx.input(|i| {
+            if !i.raw.dropped_files.is_empty() {
+                let dropped_files = i.raw.dropped_files.clone();
+                debug!("Dropped files: {:?}", dropped_files);
+                // Check if all files are either directories or have the .pak extension
+                let all_valid = dropped_files.iter().all(|file| {
+                    let path = file.path.clone().unwrap();
+                    path.is_dir() || path.extension().map(|ext| ext == "pak").unwrap_or(false)
+                });
+
+                if all_valid {
+                    if let None = self.table {
+                        let mods = map_dropped_file_to_mods(&dropped_files);
+
+                        if mods.is_empty() {
+                            error!("No mods found in dropped files.");
+                            return;
+                        }
+                        self.file_drop_viewport_open=true;
+                        debug!("Mods: {:?}", mods);
+                        self.install_mod_dialog = Some(ModInstallRequest { mods });
+                    }
+                } else {
+                    // Handle the case where not all dropped files are valid
+                    // You can show an error or prompt the user here
+                    println!(
+                        "Not all files are valid. Only directories or .pak files are allowed."
+                    );
+                }
+            }
+        });
+
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
@@ -399,7 +360,7 @@ impl eframe::App for RepakModManager {
                             true => "Switch to light mode",
                             false => "Switch to dark mode",
                         };
-                        ui.label(mode);
+                        ui.add(egui::Label::new(mode).halign(Align::Center));
                         egui::widgets::global_theme_preference_switch(ui);
                     });
                 });
@@ -449,14 +410,13 @@ impl eframe::App for RepakModManager {
         egui::SidePanel::left("left_panel")
             .min_width(300.)
             .show(ctx, |ui| {
-                Self::preview_files_being_dropped(&ctx,ui.available_rect_before_wrap());
-
                 ui.vertical(|ui| {
                     ui.set_height(ui.available_height());
                     ui.label("Mod files");
                     ui.group(|ui| {
                         ui.set_width(ui.available_width());
                         ui.set_height(ui.available_height() * 0.6);
+                        Self::preview_files_being_dropped(&ctx, ui.available_rect_before_wrap());
                         self.show_pak_files_in_dir(ui);
                     });
 
@@ -479,13 +439,6 @@ impl eframe::App for RepakModManager {
         if ctx.input(|i| i.viewport().close_requested()) {
             self.save_state().unwrap();
         }
-
-        // Collect dropped files:
-        ctx.input(|i| {
-            if !i.raw.dropped_files.is_empty() {
-                self.dropped_files.clone_from(&i.raw.dropped_files);
-            }
-        });
     }
 }
 
@@ -496,7 +449,6 @@ fn main() {
             .with_inner_size([1366.0, 768.0])
             .with_min_inner_size([1280.0, 720.])
             .with_drag_and_drop(true),
-
         ..Default::default()
     };
 
@@ -504,7 +456,6 @@ fn main() {
         "Repak GUI",
         options,
         Box::new(|cc| {
-
             cc.egui_ctx
                 .style_mut(|style| style.visuals.dark_mode = true);
             Ok(Box::new(

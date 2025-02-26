@@ -5,6 +5,7 @@ mod error;
 mod ext;
 mod footer;
 mod pak;
+pub mod utils;
 
 pub use {data::PartialEntry, error::*, pak::*};
 
@@ -111,9 +112,7 @@ impl Version {
     }
 }
 
-#[derive(
-    Clone, Copy, PartialEq, Eq, Debug, strum::Display, strum::EnumString, strum::VariantNames,
-)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, strum::Display, strum::EnumString, strum::VariantNames)]
 pub enum Compression {
     Zlib,
     Gzip,
@@ -121,7 +120,11 @@ pub enum Compression {
     Zstd,
     LZ4,
 }
-
+impl Default for Compression {
+    fn default() -> Self {
+        Compression::Oodle
+    }
+}
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Default, Clone)]
 pub(crate) enum Key {
