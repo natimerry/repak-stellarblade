@@ -215,7 +215,6 @@ impl RepakModManager {
                 get_current_pak_characteristics(full_paths.clone())
             )));
         });
-        ui.add(Label::new(format!("{:?}", &self.dropped_files)));
         if let None = self.table {
             self.table = Some(FileTable::new(pak, &pak_path));
         }
@@ -305,6 +304,7 @@ impl eframe::App for RepakModManager {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         if let Some(ref mut install_mod) = self.install_mod_dialog {
             if self.file_drop_viewport_open{
+
                 install_mod.new_mod_dialog(&ctx,&mut self.file_drop_viewport_open);
             }
         }
