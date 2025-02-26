@@ -7,7 +7,6 @@ use super::{Version, VersionMajor};
 use byteorder::{ReadBytesExt, WriteBytesExt, LE};
 use std::collections::BTreeMap;
 use std::io::{self, Read, Seek, Write};
-use strum::Display;
 
 #[derive(Default, Clone, Copy, PartialEq)]
 pub struct Hash(pub(crate) [u8; 20]);

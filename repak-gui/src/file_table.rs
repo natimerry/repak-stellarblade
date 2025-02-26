@@ -1,16 +1,15 @@
 use eframe::egui;
-use eframe::egui::accesskit::Role::ScrollBar;
 use eframe::egui::OutputCommand::CopyText;
-use eframe::egui::{CursorIcon, RichText, ScrollArea, Widget};
+use eframe::egui::RichText;
 use egui_extras::{Column, TableBuilder};
 use repak::entry::Entry;
 use repak::PakReader;
 use sha2::Digest;
 use std::fs::File;
-use std::hash::Hash;
-use std::io::BufReader;
+use std::io::{BufReader, Write};
 use std::path::PathBuf;
 use std::usize::MAX;
+use rfd::FileDialog;
 
 pub struct FileTable {
     striped: bool,
@@ -18,7 +17,6 @@ pub struct FileTable {
     clickable: bool,
     // scroll_to_row_slider: usize,
     // scroll_to_row: Option<usize>,
-    checked: bool,
     file_contents: Vec<FileEntry>,
     selection: usize,
 }
@@ -36,7 +34,6 @@ impl Default for FileTable {
             striped: true,
             resizable: true,
             clickable: true,
-            checked: true,
             file_contents: vec![],
             selection: MAX,
         }
@@ -69,8 +66,19 @@ impl FileTable {
 
     fn show_ctx_menu(&mut self, ui: &mut egui::Ui, entry: &FileEntry) {
         if ui.button("Extract").clicked() {
-            // Handle extraction logic
-            ui.close_menu();
+            let name = PathBuf::from(&entry.file_path).file_name().unwrap().to_string_lossy().to_string();
+            let dialog = FileDialog::new().set_file_name(name).save_file();
+            if let Some(path) = dialog{
+                let pak_reader = &entry.pak_reader;
+                let mut reader = BufReader::new(File::open(&entry.pak_path).expect("Failed to open pak file"));
+
+                let buffer = pak_reader.get(entry.file_path.as_str(),&mut reader).expect("Failed to read file");
+
+                let mut file = File::create(path).expect("Failed to create file");
+                file.write_all(&buffer).expect("Failed to write file");
+                ui.close_menu();
+            }
+
         }
         if ui.button("Copy Path").clicked() {
             ui.output_mut(|o| o.commands = vec![CopyText(entry.file_path.clone())]);

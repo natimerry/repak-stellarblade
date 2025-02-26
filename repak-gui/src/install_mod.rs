@@ -1,12 +1,10 @@
 use crate::setup_custom_style;
 use crate::utils::get_current_pak_characteristics;
 use eframe::egui;
-use eframe::egui::Direction::RightToLeft;
-use eframe::egui::{Align, Checkbox, CollapsingHeader, ComboBox, Context, DroppedFile, Id, Label, ScrollArea, TextEdit, ViewportBuilder, ViewportId};
+use eframe::egui::{Align, Checkbox, ComboBox, Context, Label, TextEdit};
 use egui_extras::{Column, TableBuilder};
 use egui_flex::{item, Flex, FlexAlign};
 use repak::utils::AesKey;
-use std::default;
 use std::fs::File;
 use std::io::BufReader;
 use std::str::FromStr;
@@ -27,6 +25,7 @@ pub struct InstallableMod {
 }
 
 
+#[derive(Debug)]
 pub struct ModInstallRequest {
     pub(crate) mods: Vec<InstallableMod>,
 }
@@ -125,7 +124,7 @@ impl ModInstallRequest {
                 });
             })
             .body(|mut body| {
-                for (rowidx, mut mods) in self.mods.iter_mut().enumerate() {
+                for (rowidx, mods) in self.mods.iter_mut().enumerate() {
                     body.row(20., |mut row| {
                         row.col(|ui| {
                             ui.add(Label::new(format!("{})", rowidx + 1)).halign(Align::RIGHT));

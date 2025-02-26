@@ -1,30 +1,27 @@
 mod file_table;
 mod install_mod;
 mod utils;
+mod pak_logic;
 
-use crate::egui::RichText;
 use crate::file_table::FileTable;
 use crate::install_mod::{map_dropped_file_to_mods, ModInstallRequest};
-use eframe::egui::cache::FrameCache;
+use crate::utils::get_current_pak_characteristics;
 use eframe::egui::{
-    self, style::Selection, Align, Button, CollapsingHeader, Color32, Frame, Grid, Label, Layout,
-    ScrollArea, SelectableLabel, Stroke, Style, TextEdit, TextStyle, Theme, Ui, Visuals, Widget,
+    self, style::Selection, Align, Button, Color32, Label,
+    ScrollArea, Stroke, Style, TextEdit, TextStyle, Theme,
 };
 use egui_flex::{item, Flex, FlexAlign};
-use log::{debug, error, info, warn};
+use log::{debug, error, info};
+use repak::utils::AesKey;
 use repak::PakReader;
 use rfd::FileDialog;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::fs::File;
-use std::hash::Hash;
 use std::io::BufReader;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::usize::MAX;
-use std::{fs, io};
-use repak::utils::AesKey;
-use crate::utils::get_current_pak_characteristics;
+use std::fs;
 // use eframe::egui::WidgetText::RichText;
 
 #[derive(Deserialize, Serialize, Default)]
@@ -37,8 +34,6 @@ struct RepakModManager {
     pak_files: Vec<(PakReader, PathBuf)>,
     #[serde(skip)]
     table: Option<FileTable>,
-    #[serde(skip)]
-    dropped_files: Vec<egui::DroppedFile>,
     #[serde(skip)]
     file_drop_viewport_open: bool,
     #[serde(skip)]
@@ -88,9 +83,6 @@ fn set_custom_font_size(ctx: &egui::Context, size: f32) {
     ctx.set_style(style);
 }
 
-
-
-
 impl RepakModManager {
     fn new(cc: &eframe::CreationContext<'_>) -> Self {
         setup_custom_style(&cc.egui_ctx);
@@ -100,7 +92,6 @@ impl RepakModManager {
             pak_files: vec![],
             current_pak_file_idx: None,
             table: None,
-            dropped_files: vec![],
             ..Default::default()
         };
         set_custom_font_size(&cc.egui_ctx, x.default_font_size);
@@ -122,13 +113,16 @@ impl RepakModManager {
                 if path.is_dir() {
                     continue;
                 }
-                if path.extension().unwrap_or_default() != "pak" {
-                    continue;
-                }
                 let mut disabled = false;
-                if path.extension().unwrap_or_default() == "pak_disabled" {
-                    disabled = true;
+
+                if path.extension().unwrap_or_default() != "pak" {
+                    if path.extension().unwrap_or_default() == "pak_disabled" {
+                        disabled = true;
+                    } else {
+                        continue;
+                    }
                 }
+
                 let mut builder = repak::PakBuilder::new();
                 builder = builder.key(aes_key.0.clone());
                 let pak = builder
@@ -144,26 +138,17 @@ impl RepakModManager {
         if let None = self.current_pak_file_idx {
             return Ok(());
         }
-        let mut builder = repak::PakBuilder::new();
-        let aes_key =
-            AesKey::from_str("0C263D8C22DCB085894899C3A3796383E9BF9DE0CBFB08C9BF2DEF2E84F29D74")
-                .unwrap();
-        builder = builder.key(aes_key.0);
-        let pak = &self.pak_files[self.current_pak_file_idx.unwrap()].0;
-
-        let pak_path = self.pak_files[self.current_pak_file_idx.unwrap()].1.clone();
 
         ui.label("Files");
         ui.separator();
         ScrollArea::horizontal()
             .auto_shrink([false, false])
             .show(ui, |ui| {
-                let mut table = &mut self.table;
+                let table = &mut self.table;
                 if let Some(ref mut table) = table {
                     table.table_ui(ui);
                 }
             });
-
         Ok(())
     }
 
@@ -225,7 +210,6 @@ impl RepakModManager {
             .show(ui, |ui| {
                 ui.vertical(|ui| {
                     for (i, pak_file) in self.pak_files.iter().enumerate() {
-                        let selected = true;
                         if let Some(_idx) = self.current_pak_file_idx {}
                         let pakfile = ui.selectable_label(
                             i == self.current_pak_file_idx.unwrap_or(MAX),
@@ -261,6 +245,8 @@ impl RepakModManager {
             info!("Loading config: {}", path.to_string_lossy());
             let data = fs::read_to_string(path)?;
             let mut config: Self = serde_json::from_str(&data)?;
+
+            setup_custom_style(&ctx.egui_ctx);
             set_custom_font_size(&ctx.egui_ctx, config.default_font_size);
             config.collect_pak_files();
             Ok(config)
@@ -283,7 +269,6 @@ impl RepakModManager {
     /// Preview hovering files:
     fn preview_files_being_dropped(ctx: &egui::Context, rect: egui::Rect) {
         use egui::{Align2, Color32, Id, LayerId, Order, TextStyle};
-        use std::fmt::Write as _;
 
         if !ctx.input(|i| i.raw.hovered_files.is_empty()) {
             let painter =
@@ -299,20 +284,11 @@ impl RepakModManager {
             );
         }
     }
-}
-impl eframe::App for RepakModManager {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        if let Some(ref mut install_mod) = self.install_mod_dialog {
-            if self.file_drop_viewport_open{
 
-                install_mod.new_mod_dialog(&ctx,&mut self.file_drop_viewport_open);
-            }
-        }
-
+    fn check_drop(&mut self,ctx: &egui::Context) {
         ctx.input(|i| {
             if !i.raw.dropped_files.is_empty() {
                 let dropped_files = i.raw.dropped_files.clone();
-                debug!("Dropped files: {:?}", dropped_files);
                 // Check if all files are either directories or have the .pak extension
                 let all_valid = dropped_files.iter().all(|file| {
                     let path = file.path.clone().unwrap();
@@ -320,17 +296,15 @@ impl eframe::App for RepakModManager {
                 });
 
                 if all_valid {
-                    if let None = self.table {
-                        let mods = map_dropped_file_to_mods(&dropped_files);
-
-                        if mods.is_empty() {
-                            error!("No mods found in dropped files.");
-                            return;
-                        }
-                        self.file_drop_viewport_open=true;
-                        debug!("Mods: {:?}", mods);
-                        self.install_mod_dialog = Some(ModInstallRequest { mods });
+                    let mods = map_dropped_file_to_mods(&dropped_files);
+                    if mods.is_empty() {
+                        error!("No mods found in dropped files.");
+                        return;
                     }
+                    self.file_drop_viewport_open = true;
+                    debug!("Mods: {:?}", mods);
+                    self.install_mod_dialog = Some(ModInstallRequest { mods });
+                    debug!("Installing mod: {:?}", &self.install_mod_dialog);
                 } else {
                     // Handle the case where not all dropped files are valid
                     // You can show an error or prompt the user here
@@ -340,7 +314,10 @@ impl eframe::App for RepakModManager {
                 }
             }
         });
-
+    }
+}
+impl eframe::App for RepakModManager {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
@@ -416,7 +393,6 @@ impl eframe::App for RepakModManager {
                     ui.group(|ui| {
                         ui.set_width(ui.available_width());
                         ui.set_height(ui.available_height() * 0.6);
-                        Self::preview_files_being_dropped(&ctx, ui.available_rect_before_wrap());
                         self.show_pak_files_in_dir(ui);
                     });
 
@@ -433,12 +409,20 @@ impl eframe::App for RepakModManager {
             });
 
         egui::CentralPanel::default().show(ctx, |ui| {
+            Self::preview_files_being_dropped(&ctx, ui.available_rect_before_wrap());
             self.list_pak_contents(ui).expect("TODO: panic message");
         });
 
         if ctx.input(|i| i.viewport().close_requested()) {
             self.save_state().unwrap();
         }
+        self.check_drop(&ctx);
+        if let Some(ref mut install_mod) = self.install_mod_dialog {
+            if self.file_drop_viewport_open {
+                install_mod.new_mod_dialog(&ctx, &mut self.file_drop_viewport_open);
+            }
+        }
+
     }
 }
 
