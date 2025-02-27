@@ -25,6 +25,7 @@ sha1 = { workspace = true }
 strum = { workspace = true }
 hex.workspace = true
 blake3 = "1.5.5"
+base64.workspace = true
 
 [dev-dependencies]
 base64 = { workspace = true }

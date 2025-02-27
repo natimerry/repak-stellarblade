@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 use std::io::{self, Read, Seek, Write};
 
 #[derive(Default, Clone, Copy, PartialEq)]
-pub(crate) struct Hash(pub(crate) [u8; 20]);
+pub struct Hash(pub(crate) [u8; 20]);
 impl std::fmt::Debug for Hash {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Hash({})", hex::encode(self.0))
@@ -73,7 +73,7 @@ impl PakBuilder {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PakReader {
     pak: Pak,
     key: super::Key,
@@ -87,11 +87,11 @@ pub struct PakWriter<W: Write + Seek> {
     allowed_compression: Vec<Compression>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct Pak {
     version: Version,
     mount_point: String,
-    index_offset: Option<u64>,
+    pub index_offset: Option<u64>,
     index: Index,
     encrypted_index: bool,
     encryption_guid: Option<u128>,
@@ -120,7 +120,7 @@ impl Pak {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub(crate) struct Index {
     path_hash_seed: Option<u64>,
     entries: BTreeMap<String, super::entry::Entry>,
@@ -221,6 +221,12 @@ impl PakReader {
         self.pak.index.entries().keys().cloned().collect()
     }
 
+    pub fn get_file_entry(&self, path: &str) -> Result<Entry, Error> {
+        match self.pak.index.entries().get(path) {
+            Some(entry) => Ok((*entry).clone()),
+            None => Err(super::Error::MissingEntry(path.to_owned())),
+        }
+    }
     pub fn into_pakwriter<W: Write + Seek>(
         self,
         mut writer: W,
@@ -235,6 +241,7 @@ impl PakReader {
     }
 }
 
+struct PakFileEntry {}
 impl<W: Write + Seek> PakWriter<W> {
     fn new_inner(
         writer: W,
@@ -692,17 +699,9 @@ impl Pak {
         }
 
         writer.write_all(&[
-
-
             0x06, 0x12, 0x24, 0x20, 0x06, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00, 0x10, 0x00, 0x00,
-
-
             0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-
-
             0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-
-
         ])?;
 
         footer.write(writer)?;

@@ -5,13 +5,13 @@ use byteorder::{ReadBytesExt, WriteBytesExt, LE};
 use std::io;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub(crate) enum EntryLocation {
+pub enum EntryLocation {
     Data,
     Index,
 }
 
 #[derive(Debug, Default, Clone)]
-pub(crate) struct Block {
+pub struct Block {
     pub start: u64,
     pub end: u64,
 }
@@ -48,8 +48,8 @@ enum CompressionIndexSize {
     U32,
 }
 
-#[derive(Debug)]
-pub(crate) struct Entry {
+#[derive(Debug,Clone)]
+pub struct Entry {
     pub offset: u64,
     pub compressed: u64,
     pub uncompressed: u64,

@@ -1,0 +1,38 @@
+[package]
+name = "repak-gui"
+repository.workspace = true
+authors.workspace = true
+license.workspace = true
+version.workspace = true
+edition.workspace = true
+keywords.workspace = true
+
+[package.metadata.wix]
+upgrade-guid = "3ABC116E-0858-4842-8C33-F213D7FA8A4B"
+path-guid = "0F727DCE-5DD6-48B8-9882-F9205826FCC0"
+license = false
+eula = false
+
+
+[dependencies]
+eframe = "0.31.0"
+egui_flex = "0.3.0"
+env_logger = "0.11.6"
+rfd = "0.15.2"
+log = "0.4.26"
+repak = { path = "../repak" ,features = ["oodle","encryption"]}
+aes.workspace = true
+hex.workspace = true
+base64.workspace = true
+egui_extras = { version = "0.31.0", features = ["all_loaders"] }
+sha2 = "0.10.8"
+serde = { version = "1.0.218", features = ["derive"] }
+serde_json = "1.0.139"
+dirs = "6.0.0"
+tempfile = "3.17.1"
+path-clean = "1.0.1"
+path-slash = "0.2.1"
+rayon = "1.10.0"
+uasset-mesh-patch-rivals = {path = "../uasset-mesh-patch-rivals"}
+colored = "3.0.0"
+notify = "8.0.0"
