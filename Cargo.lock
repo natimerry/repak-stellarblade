@@ -3027,6 +3027,7 @@ version = "0.5.8"
 dependencies = [
  "aes",
  "base64 0.22.1",
+ "colored",
  "dirs",
  "eframe",
  "egui_extras",
@@ -3034,11 +3035,16 @@ dependencies = [
  "env_logger",
  "hex",
  "log",
+ "path-clean",
+ "path-slash",
+ "rayon",
  "repak",
  "rfd",
  "serde",
  "serde_json",
  "sha2",
+ "tempfile",
+ "uasset-mesh-patch-rivals",
 ]
 
 [[package]]

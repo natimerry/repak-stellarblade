@@ -1,27 +1,29 @@
 mod file_table;
 mod install_mod;
-mod utils;
 mod pak_logic;
+mod utils;
+
+pub mod ios_widget;
 
 use crate::file_table::FileTable;
-use crate::install_mod::{map_dropped_file_to_mods, ModInstallRequest};
+use crate::install_mod::{map_dropped_file_to_mods, map_paths_to_mods, ModInstallRequest, AES_KEY};
 use crate::utils::get_current_pak_characteristics;
 use eframe::egui::{
-    self, style::Selection, Align, Button, Color32, Label,
-    ScrollArea, Stroke, Style, TextEdit, TextStyle, Theme,
+    self, style::Selection, Align, Button, Color32, Label, ScrollArea, Stroke, Style, TextEdit,
+    TextStyle, Theme,
 };
 use egui_flex::{item, Flex, FlexAlign};
-use log::{debug, error, info};
+use log::{debug, error, info, trace};
 use repak::utils::AesKey;
 use repak::PakReader;
 use rfd::FileDialog;
 use serde::{Deserialize, Serialize};
+use std::fs;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::usize::MAX;
-use std::fs;
 // use eframe::egui::WidgetText::RichText;
 
 #[derive(Deserialize, Serialize, Default)]
@@ -31,7 +33,7 @@ struct RepakModManager {
     #[serde(skip)]
     current_pak_file_idx: Option<usize>,
     #[serde(skip)]
-    pak_files: Vec<(PakReader, PathBuf)>,
+    pak_files: Vec<PakEntry>,
     #[serde(skip)]
     table: Option<FileTable>,
     #[serde(skip)]
@@ -40,6 +42,12 @@ struct RepakModManager {
     install_mod_dialog: Option<ModInstallRequest>,
 }
 
+#[derive(Clone)]
+struct PakEntry {
+    reader: PakReader,
+    path: PathBuf,
+    enabled: bool,
+}
 fn use_dark_red_accent(style: &mut Style) {
     style.visuals.hyperlink_color = Color32::from_hex("#f71034").expect("Invalid color");
     style.visuals.text_cursor.stroke.color = Color32::from_hex("#941428").unwrap();
@@ -103,10 +111,7 @@ impl RepakModManager {
             return;
         } else {
             let mut vecs = vec![];
-            let aes_key = AesKey::from_str(
-                "0C263D8C22DCB085894899C3A3796383E9BF9DE0CBFB08C9BF2DEF2E84F29D74",
-            )
-            .unwrap();
+
             for entry in std::fs::read_dir(self.game_path.clone()).unwrap() {
                 let entry = entry.unwrap();
                 let path = entry.path();
@@ -124,12 +129,20 @@ impl RepakModManager {
                 }
 
                 let mut builder = repak::PakBuilder::new();
-                builder = builder.key(aes_key.0.clone());
-                let pak = builder
-                    .reader(&mut BufReader::new(File::open(path.clone()).unwrap()))
-                    .unwrap();
+                builder = builder.key(AES_KEY.clone().0);
+                let pak = builder.reader(&mut BufReader::new(File::open(path.clone()).unwrap()));
 
-                vecs.push((pak, path));
+                if let Err(e) = pak {
+                    error!("Error opening pak file: {}", e);
+                    continue;
+                }
+                let pak = pak.unwrap();
+                let entry = PakEntry {
+                    reader: pak,
+                    path,
+                    enabled: !disabled,
+                };
+                vecs.push(entry);
             }
             self.pak_files = vecs;
         }
@@ -157,8 +170,10 @@ impl RepakModManager {
             return;
         }
         use egui::{Label, RichText};
-        let pak = &self.pak_files[self.current_pak_file_idx.unwrap()].0;
-        let pak_path = self.pak_files[self.current_pak_file_idx.unwrap()].1.clone();
+        let pak = &self.pak_files[self.current_pak_file_idx.unwrap()].reader;
+        let pak_path = self.pak_files[self.current_pak_file_idx.unwrap()]
+            .path
+            .clone();
         let full_paths = pak.files().into_iter().collect::<Vec<_>>();
 
         ui.collapsing("Encryption details", |ui| {
@@ -209,20 +224,43 @@ impl RepakModManager {
             .auto_shrink([false, false])
             .show(ui, |ui| {
                 ui.vertical(|ui| {
-                    for (i, pak_file) in self.pak_files.iter().enumerate() {
-                        if let Some(_idx) = self.current_pak_file_idx {}
-                        let pakfile = ui.selectable_label(
-                            i == self.current_pak_file_idx.unwrap_or(MAX),
-                            pak_file
-                                .1
-                                .file_name()
-                                .unwrap()
-                                .to_string_lossy()
-                                .to_string(),
-                        );
-                        if pakfile.clicked() {
-                            self.current_pak_file_idx = Some(i);
-                        }
+                    for (i, pak_file) in self.pak_files.iter_mut().enumerate() {
+                        ui.horizontal(|ui| {
+                            if let Some(_idx) = self.current_pak_file_idx {}
+                            let pakfile = ui.selectable_label(
+                                i == self.current_pak_file_idx.unwrap_or(MAX),
+                                pak_file
+                                    .path
+                                    .file_stem()
+                                    .unwrap()
+                                    .to_string_lossy()
+                                    .to_string(),
+                            );
+                            if pakfile.clicked() {
+                                self.current_pak_file_idx = Some(i);
+                            }
+                            let toggler = ui.add(ios_widget::toggle(&mut pak_file.enabled));
+                            if toggler.clicked() {
+                                if pak_file.enabled {
+                                    let new_pak = &pak_file.path.with_extension("pak_disabled");
+                                    info!("Enabling pak file: {:?}", new_pak);
+                                    pak_file.path = new_pak.clone();
+                                    let _ = std::fs::rename(
+                                        &pak_file.path,
+                                        new_pak,
+                                    );
+                                }
+                                else {
+                                    let new_pak = &pak_file.path.with_extension("pak");
+                                    info!("Disabling pak file: {:?}", new_pak);
+                                    pak_file.path = new_pak.clone();
+                                    let _ = std::fs::rename(
+                                        &pak_file.path,
+                                        new_pak,
+                                    );
+                                }
+                            }
+                        });
                     }
                 });
             });
@@ -267,25 +305,32 @@ impl RepakModManager {
     }
 
     /// Preview hovering files:
-    fn preview_files_being_dropped(ctx: &egui::Context, rect: egui::Rect) {
+    fn preview_files_being_dropped(&self, ctx: &egui::Context, rect: egui::Rect) {
         use egui::{Align2, Color32, Id, LayerId, Order, TextStyle};
 
         if !ctx.input(|i| i.raw.hovered_files.is_empty()) {
             let painter =
                 ctx.layer_painter(LayerId::new(Order::Foreground, Id::new("file_drop_target")));
 
+            let msg = match self.game_path.is_dir() {
+                true => "Drop mod files here",
+                false => "Choose a game directory first!!!",
+            };
             painter.rect_filled(rect, 0.0, Color32::from_rgba_unmultiplied(241, 24, 14, 40));
             painter.text(
                 rect.center(),
                 Align2::CENTER_CENTER,
-                "Add new mod files here",
+                msg,
                 TextStyle::Heading.resolve(&ctx.style()),
                 Color32::WHITE,
             );
         }
     }
 
-    fn check_drop(&mut self,ctx: &egui::Context) {
+    fn check_drop(&mut self, ctx: &egui::Context) {
+        if !self.game_path.is_dir() {
+            return;
+        }
         ctx.input(|i| {
             if !i.raw.dropped_files.is_empty() {
                 let dropped_files = i.raw.dropped_files.clone();
@@ -303,7 +348,8 @@ impl RepakModManager {
                     }
                     self.file_drop_viewport_open = true;
                     debug!("Mods: {:?}", mods);
-                    self.install_mod_dialog = Some(ModInstallRequest { mods });
+                    self.install_mod_dialog =
+                        Some(ModInstallRequest::new(mods, self.game_path.clone()));
                     debug!("Installing mod: {:?}", &self.install_mod_dialog);
                 } else {
                     // Handle the case where not all dropped files are valid
@@ -315,73 +361,145 @@ impl RepakModManager {
             }
         });
     }
+
+    fn show_menu_bar(&mut self, ui: &mut egui::Ui) -> Result<(), repak::Error> {
+        egui::menu::bar(ui, |ui| {
+            ui.menu_button("File", |ui| {
+                let msg = match self.game_path.is_dir() {
+                    true => "Drop mod files here",
+                    false => "Choose a game directory first!!!",
+                };
+
+                if ui
+                    .add_enabled(self.game_path.is_dir(), Button::new("Install mods"))
+                    .on_hover_text(msg)
+                    .clicked()
+                {
+                    ui.close_menu(); // Closes the menu
+                    let mod_files = rfd::FileDialog::new()
+                        .set_title("Pick mods")
+                        .pick_files()
+                        .unwrap_or(vec![]);
+
+                    if mod_files.is_empty() {
+                        error!("No mods found in dropped files.");
+                        return;
+                    }
+
+                    let mods = map_paths_to_mods(&mod_files);
+                    if mods.is_empty() {
+                        error!("No mods found in dropped files.");
+                        return;
+                    }
+
+                    self.file_drop_viewport_open = true;
+                    self.install_mod_dialog =
+                        Some(ModInstallRequest::new(mods, self.game_path.clone()));
+                    self.collect_pak_files();
+                }
+
+                if ui
+                    .add_enabled(self.game_path.is_dir(), Button::new("Pack folder"))
+                    .on_hover_text(msg)
+                    .clicked()
+                {
+                    ui.close_menu(); // Closes the menu
+                    let mod_files = rfd::FileDialog::new()
+                        .set_title("Pick mods")
+                        .pick_folders()
+                        .unwrap_or(vec![]);
+
+                    if mod_files.is_empty() {
+                        error!("No folders picked. Please pick a folder with mods in it.");
+                        return;
+                    }
+
+                    let mods = map_paths_to_mods(&mod_files);
+                    if mods.is_empty() {
+                        error!("No mods found in dropped files.");
+                        return;
+                    }
+                    self.file_drop_viewport_open = true;
+                    self.install_mod_dialog =
+                        Some(ModInstallRequest::new(mods, self.game_path.clone()));
+                    self.collect_pak_files();
+                }
+                if ui.button("Quit").clicked() {
+                    ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
+                }
+            });
+
+            ui.menu_button("Settings", |ui| {
+                ui.add(
+                    egui::Slider::new(&mut self.default_font_size, 12.0..=32.0).text("Font size"),
+                );
+                set_custom_font_size(ui.ctx(), self.default_font_size);
+                ui.horizontal(|ui| {
+                    let mode = match ui.ctx().style().visuals.dark_mode {
+                        true => "Switch to light mode",
+                        false => "Switch to dark mode",
+                    };
+                    ui.add(egui::Label::new(mode).halign(Align::Center));
+                    egui::widgets::global_theme_preference_switch(ui);
+                });
+            });
+        });
+
+        Ok(())
+    }
+
+    fn show_file_dialog(&mut self, ui: &mut egui::Ui) {
+        Flex::horizontal()
+            .w_full()
+            .align_items(FlexAlign::Center)
+            .show(ui, |flex_ui| {
+                flex_ui.add(item(), Label::new("Mod folder:"));
+                flex_ui.add(
+                    item().grow(1.0),
+                    TextEdit::singleline(&mut self.game_path.to_string_lossy().to_string()),
+                );
+                let browse_button = flex_ui.add(item(), Button::new("Browse"));
+                if browse_button.clicked() {
+                    if let Some(path) = FileDialog::new().pick_folder() {
+                        self.game_path = path;
+                        self.collect_pak_files();
+                    }
+                }
+                flex_ui.add_ui(item(), |ui| {
+                    let x = ui.add_enabled(self.game_path.exists(), Button::new("Open mod folder"));
+                    if x.clicked() {
+                        println!("Opening mod folder: {}", self.game_path.to_string_lossy());
+                        #[cfg(target_os = "windows")]
+                        {
+                            let _ = std::process::Command::new("explorer")
+                                .arg(self.game_path.clone())
+                                .spawn();
+                        }
+
+                        #[cfg(target_os = "linux")]
+                        {
+                            debug!("Opening mod folder: {}", self.game_path.to_string_lossy());
+                            let _ = std::process::Command::new("xdg-open")
+                                .arg(self.game_path.to_string_lossy().to_string())
+                                .spawn();
+                        }
+                    }
+                });
+            });
+    }
 }
 impl eframe::App for RepakModManager {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            egui::menu::bar(ui, |ui| {
-                ui.menu_button("File", |ui| {
-                    if ui.button("Quit").clicked() {
-                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-                    }
-                });
-                // ui.add_space(16.0);
-                ui.menu_button("Settings", |ui| {
-                    ui.add(
-                        egui::Slider::new(&mut self.default_font_size, 12.0..=32.0)
-                            .text("Font size"),
-                    );
-                    set_custom_font_size(ui.ctx(), self.default_font_size);
-                    ui.horizontal(|ui| {
-                        let mode = match ui.ctx().style().visuals.dark_mode {
-                            true => "Switch to light mode",
-                            false => "Switch to dark mode",
-                        };
-                        ui.add(egui::Label::new(mode).halign(Align::Center));
-                        egui::widgets::global_theme_preference_switch(ui);
-                    });
-                });
-            });
-            ui.separator();
-            Flex::horizontal()
-                .w_full()
-                .align_items(FlexAlign::Center)
-                .show(ui, |flex_ui| {
-                    flex_ui.add(item(), Label::new("Mod folder:"));
-                    flex_ui.add(
-                        item().grow(1.0),
-                        TextEdit::singleline(&mut self.game_path.to_string_lossy().to_string()),
-                    );
-                    let browse_button = flex_ui.add(item(), Button::new("Browse"));
-                    if browse_button.clicked() {
-                        if let Some(path) = FileDialog::new().pick_folder() {
-                            self.game_path = path;
-                            self.collect_pak_files();
-                        }
-                    }
-                    flex_ui.add_ui(item(), |ui| {
-                        let x =
-                            ui.add_enabled(self.game_path.exists(), Button::new("Open mod folder"));
-                        if x.clicked() {
-                            println!("Opening mod folder: {}", self.game_path.to_string_lossy());
-                            #[cfg(target_os = "windows")]
-                            {
-                                let _ = std::process::Command::new("explorer")
-                                    .arg(self.game_path.clone())
-                                    .spawn();
-                            }
+        // THIS SHIT IS MAD RETARDED BUT IM LOSING TRACK OF PLACES TO CALL THIS ATP SO I DO NOT GAF
+        // self.collect_pak_files();
 
-                            #[cfg(target_os = "linux")]
-                            {
-                                debug!("Opening mod folder: {}", self.game_path.to_string_lossy());
-                                let _ = std::process::Command::new("xdg-open")
-                                    .arg(self.game_path.to_string_lossy().to_string())
-                                    .spawn();
-                            }
-                        }
-                    });
-                });
+        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+            if let Err(e) = self.show_menu_bar(ui) {
+                error!("Error: {}", e);
+            }
+
             ui.separator();
+            self.show_file_dialog(ui);
         });
 
         egui::SidePanel::left("left_panel")
@@ -409,7 +527,7 @@ impl eframe::App for RepakModManager {
             });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            Self::preview_files_being_dropped(&ctx, ui.available_rect_before_wrap());
+            self.preview_files_being_dropped(&ctx, ui.available_rect_before_wrap());
             self.list_pak_contents(ui).expect("TODO: panic message");
         });
 
@@ -420,9 +538,9 @@ impl eframe::App for RepakModManager {
         if let Some(ref mut install_mod) = self.install_mod_dialog {
             if self.file_drop_viewport_open {
                 install_mod.new_mod_dialog(&ctx, &mut self.file_drop_viewport_open);
+                self.collect_pak_files();
             }
         }
-
     }
 }
 

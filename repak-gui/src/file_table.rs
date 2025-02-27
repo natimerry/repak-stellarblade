@@ -57,7 +57,6 @@ impl FileTable {
                 entry: pak_reader.get_file_entry(entry).unwrap(),
             })
             .collect::<Vec<_>>();
-        println!("NEW TABLE");
         Self {
             file_contents: file_entries,
             ..Default::default()

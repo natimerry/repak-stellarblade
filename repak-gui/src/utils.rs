@@ -1,5 +1,19 @@
 use std::collections::HashMap;
+use std::{fs, io};
+use std::path::{Path, PathBuf};
 
+pub fn collect_files(paths: &mut Vec<PathBuf>, dir: &Path) -> io::Result<()> {
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_dir() {
+            collect_files(paths, &path)?;
+        } else {
+            paths.push(entry.path());
+        }
+    }
+    Ok(())
+}
 pub fn get_current_pak_characteristics(mod_contents: Vec<String>) -> String {
     let character_map: HashMap<&str, &str> = [
         ("1011", "Hulk"),
