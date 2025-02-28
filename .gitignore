@@ -4,3 +4,6 @@
 *.diff
 /Content/
 .idea
+/repak-gui/cross/
+/latest.log
+/repak/tests/pack/patched_files
