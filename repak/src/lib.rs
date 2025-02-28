@@ -127,7 +127,7 @@ impl Default for Compression {
 }
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Default, Clone)]
-pub(crate) enum Key {
+pub enum Key {
     #[cfg(feature = "encryption")]
     Some(aes::Aes256),
     #[default]

@@ -7,7 +7,7 @@ use egui_extras::{Column, TableBuilder};
 use egui_flex::{item, Flex, FlexAlign};
 use log::error;
 use repak::utils::AesKey;
-use repak::{Compression, Error, PakReader};
+use repak::{Compression, PakReader};
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
@@ -319,15 +319,27 @@ pub fn map_dropped_file_to_mods(dropped_files: &Vec<egui::DroppedFile>) -> Vec<I
             let is_dir = dropped_file.path.clone().unwrap().is_dir();
             let mut modtype = "Unknown".to_string();
 
+            let mut pak = None;
+
             let pakfile = dropped_file.path.clone().unwrap();
             if !is_dir {
-                let mut builder = repak::PakBuilder::new();
-                builder = builder.key(AES_KEY.clone().0);
+                let builder = repak::PakBuilder::new()
+                    .key(AES_KEY.clone().0)
+                    .reader(&mut BufReader::new(File::open(pakfile.clone()).unwrap()));
+                match builder {
+                    Ok(builder) => {
+                        pak = Some(builder.clone());
+                        modtype = get_current_pak_characteristics(builder.files());
+                    }
+                    Err(e) => {
+                        error!("Error reading pak file: {}", e);
+                        return Err(e);
+                    }
+                }
 
-                let pak =
-                    builder.reader(&mut BufReader::new(File::open(pakfile.clone()).unwrap()))?;
-
-                modtype = get_current_pak_characteristics(pak.files());
+            }
+            if let None = pak {
+                assert!(is_dir);
             }
 
             Ok(InstallableMod {
@@ -335,9 +347,11 @@ pub fn map_dropped_file_to_mods(dropped_files: &Vec<egui::DroppedFile>) -> Vec<I
                 mod_type: modtype,
                 repak: !is_dir,
                 fix_mesh: false,
+                is_dir,
+                reader: pak,
+                mod_path: pakfile.clone(),
                 mount_point: "../../../".to_string(),
                 path_hash_seed: "00000000".to_string(),
-                is_dir,
                 ..Default::default()
             })
         })

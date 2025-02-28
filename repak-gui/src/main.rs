@@ -13,17 +13,18 @@ use eframe::egui::{
     TextStyle, Theme,
 };
 use egui_flex::{item, Flex, FlexAlign};
-use log::{debug, error, info, trace};
-use repak::utils::AesKey;
+use log::{debug, error, info, warn};
 use repak::PakReader;
 use rfd::FileDialog;
 use serde::{Deserialize, Serialize};
-use std::fs;
+use std::{fs, thread};
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
-use std::str::FromStr;
+use std::sync::mpsc::{channel, Receiver};
+use std::time::Duration;
 use std::usize::MAX;
+use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 // use eframe::egui::WidgetText::RichText;
 
 #[derive(Deserialize, Serialize, Default)]
@@ -40,6 +41,8 @@ struct RepakModManager {
     file_drop_viewport_open: bool,
     #[serde(skip)]
     install_mod_dialog: Option<ModInstallRequest>,
+    #[serde(skip)]
+    receiver: Option<Receiver<Event>>,
 }
 
 #[derive(Clone)]
@@ -244,16 +247,17 @@ impl RepakModManager {
                                 if pak_file.enabled {
                                     let new_pak = &pak_file.path.with_extension("pak_disabled");
                                     info!("Enabling pak file: {:?}", new_pak);
-                                    pak_file.path = new_pak.clone();
-                                    let _ = std::fs::rename(
+                                    std::fs::rename(
                                         &pak_file.path,
                                         new_pak,
-                                    );
+                                    ).expect("Failed to rename pak file");
                                 }
                                 else {
                                     let new_pak = &pak_file.path.with_extension("pak");
-                                    info!("Disabling pak file: {:?}", new_pak);
-                                    pak_file.path = new_pak.clone();
+                                    std::fs::rename(
+                                        &pak_file.path,
+                                        new_pak,
+                                    ).expect("Failed to rename pak file");
                                     let _ = std::fs::rename(
                                         &pak_file.path,
                                         new_pak,
@@ -278,8 +282,10 @@ impl RepakModManager {
     }
 
     fn load(ctx: &eframe::CreationContext) -> std::io::Result<Self> {
+        let (tx, rx) = channel();
+
         let path = Self::config_path();
-        if path.exists() {
+        let shit = if path.exists() {
             info!("Loading config: {}", path.to_string_lossy());
             let data = fs::read_to_string(path)?;
             let mut config: Self = serde_json::from_str(&data)?;
@@ -287,14 +293,37 @@ impl RepakModManager {
             setup_custom_style(&ctx.egui_ctx);
             set_custom_font_size(&ctx.egui_ctx, config.default_font_size);
             config.collect_pak_files();
+            config.receiver = Some(rx);
+
             Ok(config)
         } else {
             info!(
                 "First Launch creating new directory: {}",
                 path.to_string_lossy()
             );
-            Ok(Self::new(ctx)) // If config doesn't exist, return default settings
+            let mut x = Self::new(ctx);
+            x.receiver = Some(rx);
+            Ok(x)
+        };
+
+        if let Ok(ref shit) = shit {
+            let path = shit.game_path.clone();
+            thread::spawn(move || {
+                let mut watcher: RecommendedWatcher = notify::recommended_watcher(move |res| {
+                    if let Ok(event) = res {
+                        tx.send(event).unwrap();
+                    }
+                }).unwrap();
+
+                watcher.watch(&*PathBuf::from(path), RecursiveMode::Recursive).unwrap();
+
+                // Keep the thread alive
+                loop {
+                    thread::sleep(Duration::from_secs(1));
+                }
+            });
         }
+        shit
     }
     fn save_state(&self) -> std::io::Result<()> {
         let path = Self::config_path();
@@ -395,7 +424,6 @@ impl RepakModManager {
                     self.file_drop_viewport_open = true;
                     self.install_mod_dialog =
                         Some(ModInstallRequest::new(mods, self.game_path.clone()));
-                    self.collect_pak_files();
                 }
 
                 if ui
@@ -422,7 +450,6 @@ impl RepakModManager {
                     self.file_drop_viewport_open = true;
                     self.install_mod_dialog =
                         Some(ModInstallRequest::new(mods, self.game_path.clone()));
-                    self.collect_pak_files();
                 }
                 if ui.button("Quit").clicked() {
                     ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
@@ -462,7 +489,6 @@ impl RepakModManager {
                 if browse_button.clicked() {
                     if let Some(path) = FileDialog::new().pick_folder() {
                         self.game_path = path;
-                        self.collect_pak_files();
                     }
                 }
                 flex_ui.add_ui(item(), |ui| {
@@ -490,8 +516,27 @@ impl RepakModManager {
 }
 impl eframe::App for RepakModManager {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // THIS SHIT IS MAD RETARDED BUT IM LOSING TRACK OF PLACES TO CALL THIS ATP SO I DO NOT GAF
-        // self.collect_pak_files();
+
+        let mut collect_pak = false;
+        if let Some(ref receiver) = &self.receiver {
+            while let Ok(event) = receiver.try_recv(){
+                match event.kind{
+                    EventKind::Any => {
+                        warn!("Unknown event received")
+                    }
+                    EventKind::Other => {}
+                    _ => {
+                        debug!("Received event {:?}", event.kind);
+                        collect_pak = true;
+                    }
+                }
+            }
+        }
+
+        if collect_pak{
+            info!("Collecting pak files");
+            self.collect_pak_files();
+        }
 
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             if let Err(e) = self.show_menu_bar(ui) {
@@ -538,7 +583,6 @@ impl eframe::App for RepakModManager {
         if let Some(ref mut install_mod) = self.install_mod_dialog {
             if self.file_drop_viewport_open {
                 install_mod.new_mod_dialog(&ctx, &mut self.file_drop_viewport_open);
-                self.collect_pak_files();
             }
         }
     }
