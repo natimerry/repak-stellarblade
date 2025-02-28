@@ -285,7 +285,7 @@ pub fn install_mods_in_viewport(
             warn!("Stopping thread");
             break;
         }
-        if !installable_mod.repak && installable_mod.is_dir {
+        if !installable_mod.repak && !installable_mod.is_dir {
             // just move files to the correct location
             info!("Installing mod: {}", installable_mod.mod_name);
             std::fs::copy(&installable_mod.mod_path, mod_directory.join(format!("{}.pak",&installable_mod.mod_name))).unwrap();

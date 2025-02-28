@@ -247,7 +247,7 @@ impl ModInstallRequest {
                                     Checkbox::new(&mut mods.repak, "To repak"),
                                 );
                                 ui.add_enabled(
-                                    mods.repak,
+                                    mods.is_dir || mods.repak,
                                     Checkbox::new(&mut mods.fix_mesh, "Fix mesh"),
                                 );
                                 let text_edit = TextEdit::singleline(&mut mods.mount_point);

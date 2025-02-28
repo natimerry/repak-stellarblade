@@ -535,6 +535,10 @@ impl eframe::App for RepakModManager {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let mut collect_pak = false;
 
+        if !self.file_drop_viewport_open && self.install_mod_dialog.is_some() {
+            self.install_mod_dialog = None;
+        }
+
         if let None = self.install_mod_dialog {
             if let Some(ref receiver) = &self.receiver {
                 while let Ok(event) = receiver.try_recv() {
