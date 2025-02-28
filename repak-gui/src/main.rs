@@ -244,6 +244,7 @@ impl RepakModManager {
                             }
                             let toggler = ui.add(ios_widget::toggle(&mut pak_file.enabled));
                             if toggler.clicked() {
+                                pak_file.enabled = !pak_file.enabled;
                                 if pak_file.enabled {
                                     let new_pak = &pak_file.path.with_extension("pak_disabled");
                                     info!("Enabling pak file: {:?}", new_pak);
