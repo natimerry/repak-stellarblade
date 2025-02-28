@@ -7,6 +7,12 @@ version.workspace = true
 edition.workspace = true
 keywords.workspace = true
 
+[package.metadata.wix]
+upgrade-guid = "3ABC116E-0858-4842-8C33-F213D7FA8A4B"
+path-guid = "0F727DCE-5DD6-48B8-9882-F9205826FCC0"
+license = false
+eula = false
+
 
 [dependencies]
 eframe = "0.31.0"
