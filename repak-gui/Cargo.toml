@@ -1,11 +1,11 @@
 [package]
-version = "1.1.1"
 name = "repak-gui"
 repository.workspace = true
 authors.workspace = true
 license.workspace = true
 edition.workspace = true
 keywords.workspace = true
+version.workspace = true
 
 [package.metadata.wix]
 upgrade-guid = "3ABC116E-0858-4842-8C33-F213D7FA8A4B"
