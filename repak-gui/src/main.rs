@@ -14,17 +14,17 @@ use eframe::egui::{
 };
 use egui_flex::{item, Flex, FlexAlign};
 use log::{debug, error, info, warn};
+use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use repak::PakReader;
 use rfd::FileDialog;
 use serde::{Deserialize, Serialize};
-use std::{fs, thread};
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
 use std::sync::mpsc::{channel, Receiver};
 use std::time::Duration;
 use std::usize::MAX;
-use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
+use std::{fs, thread};
 // use eframe::egui::WidgetText::RichText;
 
 #[derive(Deserialize, Serialize, Default)]
@@ -242,29 +242,24 @@ impl RepakModManager {
                             if pakfile.clicked() {
                                 self.current_pak_file_idx = Some(i);
                             }
-                            let toggler = ui.add(ios_widget::toggle(&mut pak_file.enabled));
-                            if toggler.clicked() {
-                                pak_file.enabled = !pak_file.enabled;
-                                if pak_file.enabled {
-                                    let new_pak = &pak_file.path.with_extension("pak_disabled");
-                                    info!("Enabling pak file: {:?}", new_pak);
-                                    std::fs::rename(
-                                        &pak_file.path,
-                                        new_pak,
-                                    ).expect("Failed to rename pak file");
+
+                            ui.with_layout(egui::Layout::right_to_left(Align::RIGHT), |ui| {
+                                let toggler = ui.add(ios_widget::toggle(&mut pak_file.enabled));
+                                if toggler.clicked() {
+                                    pak_file.enabled = !pak_file.enabled;
+                                    if pak_file.enabled {
+                                        let new_pak = &pak_file.path.with_extension("pak_disabled");
+                                        info!("Enabling pak file: {:?}", new_pak);
+                                        std::fs::rename(&pak_file.path, new_pak)
+                                            .expect("Failed to rename pak file");
+                                    } else {
+                                        let new_pak = &pak_file.path.with_extension("pak");
+                                        std::fs::rename(&pak_file.path, new_pak)
+                                            .expect("Failed to rename pak file");
+                                        let _ = std::fs::rename(&pak_file.path, new_pak);
+                                    }
                                 }
-                                else {
-                                    let new_pak = &pak_file.path.with_extension("pak");
-                                    std::fs::rename(
-                                        &pak_file.path,
-                                        new_pak,
-                                    ).expect("Failed to rename pak file");
-                                    let _ = std::fs::rename(
-                                        &pak_file.path,
-                                        new_pak,
-                                    );
-                                }
-                            }
+                            });
                         });
                     }
                 });
@@ -314,9 +309,12 @@ impl RepakModManager {
                     if let Ok(event) = res {
                         tx.send(event).unwrap();
                     }
-                }).unwrap();
+                })
+                .unwrap();
 
-                watcher.watch(&*PathBuf::from(path), RecursiveMode::Recursive).unwrap();
+                watcher
+                    .watch(&*PathBuf::from(path), RecursiveMode::Recursive)
+                    .unwrap();
 
                 // Keep the thread alive
                 loop {
@@ -517,11 +515,10 @@ impl RepakModManager {
 }
 impl eframe::App for RepakModManager {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-
         let mut collect_pak = false;
         if let Some(ref receiver) = &self.receiver {
-            while let Ok(event) = receiver.try_recv(){
-                match event.kind{
+            while let Ok(event) = receiver.try_recv() {
+                match event.kind {
                     EventKind::Any => {
                         warn!("Unknown event received")
                     }
@@ -534,7 +531,7 @@ impl eframe::App for RepakModManager {
             }
         }
 
-        if collect_pak{
+        if collect_pak {
             info!("Collecting pak files");
             self.collect_pak_files();
         }
