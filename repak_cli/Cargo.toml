@@ -6,6 +6,7 @@ authors.workspace = true
 license.workspace = true
 version.workspace = true
 edition.workspace = true
+version = "0.7.1"
 
 [package.metadata.wix]
 upgrade-guid = "723E95D8-E87B-46BC-AD3B-C128583967CF"
