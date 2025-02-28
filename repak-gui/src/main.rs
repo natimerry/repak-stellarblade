@@ -5,9 +5,10 @@ mod utils;
 
 pub mod ios_widget;
 
+use crate::utils::find_marvel_rivals;
 use crate::file_table::FileTable;
 use crate::install_mod::{map_dropped_file_to_mods, map_paths_to_mods, ModInstallRequest, AES_KEY};
-use crate::utils::get_current_pak_characteristics;
+use crate::utils::{ get_current_pak_characteristics};
 use eframe::egui::{
     self, style::Selection, Align, Button, Color32, Label, ScrollArea, Stroke, Style, TextEdit,
     TextStyle, Theme,
@@ -25,6 +26,7 @@ use std::sync::mpsc::{channel, Receiver};
 use std::time::Duration;
 use std::usize::MAX;
 use std::{fs, thread};
+use path_clean::PathClean;
 // use eframe::egui::WidgetText::RichText;
 
 #[derive(Deserialize, Serialize, Default)]
@@ -96,9 +98,16 @@ fn set_custom_font_size(ctx: &egui::Context, size: f32) {
 
 impl RepakModManager {
     fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        let game_install_path = find_marvel_rivals();
+
+        let mut game_path = PathBuf::new();
+        if let Some(path) = game_install_path {
+            game_path = PathBuf::from(path).join("~mods").clean();
+            fs::create_dir_all(&game_path).unwrap();
+        }
         setup_custom_style(&cc.egui_ctx);
         let x = Self {
-            game_path: PathBuf::new(),
+            game_path,
             default_font_size: 18.0,
             pak_files: vec![],
             current_pak_file_idx: None,

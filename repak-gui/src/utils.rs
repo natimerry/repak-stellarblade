@@ -86,3 +86,56 @@ pub fn get_current_pak_characteristics(mod_contents: Vec<String>) -> String {
     "Unknown".to_string()
 }
 
+use std::collections::HashSet;
+use log::info;
+
+pub fn find_marvel_rivals() -> Option<PathBuf> {
+
+    let shit = get_steam_library_paths();
+    if shit.is_empty() {
+        return None;
+    }
+
+    for lib in shit{
+        let path = lib.join("steamapps/common/MarvelRivals/MarvelGame/Marvel/Content/Paks");
+        if path.exists() {
+            return Some(path);
+        }
+    }
+    println!("Marvel Rivals not found.");
+    None
+}
+
+
+/// Reads `libraryfolders.vdf` to find additional Steam libraries.
+fn get_steam_library_paths() -> Vec<PathBuf> {
+    #[cfg(target_os = "windows")]
+    let vdf_path = PathBuf::from("C:/Program Files (x86)/Steam/steamapps/libraryfolders.vdf");
+
+    #[cfg(target_os = "linux")]
+    let vdf_path = PathBuf::from("~/.steam/steam/steamapps/libraryfolders.vdf");
+
+    if !vdf_path.exists() {
+        return vec![];
+    }
+
+    let content = fs::read_to_string(vdf_path).ok().unwrap_or_default();
+    let mut paths = Vec::new();
+
+    for line in content.lines() {
+        // if line.contains('"') {
+        //     let path: String = line
+        //         .split('"')
+        //         .nth(3)  // Extracts the path
+        //         .map(|s| s.replace("\\\\", "/"))?; // Fix Windows paths
+        //     paths.push(PathBuf::from(path).join("steamapps/common"));
+        // }
+        if line.trim().starts_with("\"path\"") {
+            let path =  line.split("\"").nth(3).map(|s| PathBuf::from(s.replace("\\\\", "\\")));
+            info!("Found steam library path: {:?}", path);
+            paths.push(path.unwrap());
+        }
+    }
+
+    paths
+}
