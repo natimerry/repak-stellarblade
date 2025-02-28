@@ -612,7 +612,7 @@ impl eframe::App for RepakModManager {
         }
     }
 }
-
+#[cfg(target_os = "windows")]
 #[link(name="Kernel32")]
 extern "system" {
     fn GetConsoleProcessList(process_list: *mut u32, count: u32) -> u32;
