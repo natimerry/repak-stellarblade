@@ -14,7 +14,7 @@ use eframe::egui::{
     TextStyle, Theme,
 };
 use egui_flex::{item, Flex, FlexAlign};
-use log::{debug, error, info, warn};
+use log::{debug, error, info, warn, LevelFilter};
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use repak::PakReader;
 use rfd::FileDialog;
@@ -27,8 +27,9 @@ use std::time::Duration;
 use std::usize::MAX;
 use std::{fs, thread};
 use path_clean::PathClean;
-// use eframe::egui::WidgetText::RichText;
+use simplelog::{ColorChoice, CombinedLogger, Config, TermLogger, TerminalMode, WriteLogger};
 
+// use eframe::egui::WidgetText::RichText;
 #[derive(Deserialize, Serialize, Default)]
 struct RepakModManager {
     game_path: PathBuf,
@@ -145,7 +146,7 @@ impl RepakModManager {
                 let pak = builder.reader(&mut BufReader::new(File::open(path.clone()).unwrap()));
 
                 if let Err(e) = pak {
-                    error!("Error opening pak file: {}", e);
+                    warn!("Error opening pak file");
                     continue;
                 }
                 let pak = pak.unwrap();
@@ -250,6 +251,10 @@ impl RepakModManager {
                             );
                             if pakfile.clicked() {
                                 self.current_pak_file_idx = Some(i);
+                                self.table = Some(FileTable::new(
+                                    &pak_file.reader,
+                                    &pak_file.path,
+                                ));
                             }
 
                             ui.with_layout(egui::Layout::right_to_left(Align::RIGHT), |ui| {
@@ -282,7 +287,9 @@ impl RepakModManager {
             fs::create_dir_all(&path).unwrap();
             info!("Created config directory: {}", path.to_string_lossy());
         }
+
         path.push("repak_mod_manager.json");
+
         path
     }
 
@@ -290,7 +297,7 @@ impl RepakModManager {
         let (tx, rx) = channel();
 
         let path = Self::config_path();
-        let shit = if path.exists() {
+        let mut shit = if path.exists() {
             info!("Loading config: {}", path.to_string_lossy());
             let data = fs::read_to_string(path)?;
             let mut config: Self = serde_json::from_str(&data)?;
@@ -311,7 +318,7 @@ impl RepakModManager {
             Ok(x)
         };
 
-        if let Ok(ref shit) = shit {
+        if let Ok(ref mut shit) = shit {
             let path = shit.game_path.clone();
             thread::spawn(move || {
                 let mut watcher: RecommendedWatcher = notify::recommended_watcher(move |res| {
@@ -330,7 +337,9 @@ impl RepakModManager {
                     thread::sleep(Duration::from_secs(1));
                 }
             });
+            shit.collect_pak_files();
         }
+
         shit
     }
     fn save_state(&self) -> std::io::Result<()> {
@@ -525,20 +534,25 @@ impl RepakModManager {
 impl eframe::App for RepakModManager {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let mut collect_pak = false;
-        if let Some(ref receiver) = &self.receiver {
-            while let Ok(event) = receiver.try_recv() {
-                match event.kind {
-                    EventKind::Any => {
-                        warn!("Unknown event received")
-                    }
-                    EventKind::Other => {}
-                    _ => {
-                        debug!("Received event {:?}", event.kind);
-                        collect_pak = true;
+
+        if let None = self.install_mod_dialog {
+            if let Some(ref receiver) = &self.receiver {
+                while let Ok(event) = receiver.try_recv() {
+                    match event.kind {
+                        EventKind::Any => {
+                            warn!("Unknown event received")
+                        }
+                        EventKind::Other => {}
+                        _ => {
+                            debug!("Received event {:?}", event.kind);
+                            collect_pak = true;
+                        }
                     }
                 }
             }
         }
+        // if install_mod_dialog is open we dont want to listen to events
+
 
         if collect_pak {
             info!("Collecting pak files");
@@ -595,12 +609,45 @@ impl eframe::App for RepakModManager {
     }
 }
 
+#[link(name="Kernel32")]
+extern "system" {
+    fn GetConsoleProcessList(process_list: *mut u32, count: u32) -> u32;
+    fn FreeConsole() -> i32;
+}
+#[cfg(target_os = "windows")]
+fn free_console() -> bool {
+    unsafe { FreeConsole() == 0 }
+}
+#[cfg(target_os = "windows")]
+fn is_console() -> bool {
+    unsafe {
+        let mut buffer = [0u32; 1];
+        let count = GetConsoleProcessList(buffer.as_mut_ptr(), 1);
+        count != 1
+    }
+}
+
+
+
 fn main() {
-    env_logger::init();
+    #[cfg(target_os = "windows")]
+    if !is_console() {
+        free_console();
+    }
+
+    let log_file = File::create("latest.log").expect("Failed to create log file");
+    let _ = CombinedLogger::init(
+        vec![
+            TermLogger::new(LevelFilter::Info, Config::default(),TerminalMode::Mixed,ColorChoice::Auto),
+            WriteLogger::new(LevelFilter::Info, Config::default(), log_file)
+        ]
+    ).expect("Failed to initialize logger");
+
+
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1366.0, 768.0])
-            .with_min_inner_size([1280.0, 720.])
+            .with_min_inner_size([1100.0, 650.])
             .with_drag_and_drop(true),
         ..Default::default()
     };

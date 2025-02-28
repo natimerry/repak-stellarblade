@@ -1,7 +1,8 @@
+use std::fmt::format;
 use crate::install_mod::{InstallableMod, AES_KEY};
 use crate::utils::collect_files;
 use colored::Colorize;
-use log::{error, info};
+use log::{error, info, warn};
 use path_clean::PathClean;
 use path_slash::PathExt;
 use rayon::iter::IntoParallelRefIterator;
@@ -11,6 +12,7 @@ use std::fs;
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, BufWriter, ErrorKind, Write};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 use tempfile::tempdir;
 use uasset_mesh_patch_rivals::{Logger, PatchFixer};
 
@@ -159,7 +161,7 @@ fn mesh_patch(paths: &mut Vec<PathBuf>, mod_dir: &PathBuf) -> Result<(), repak::
 }
 
 fn create_repak_from_pak(pak: &InstallableMod, mod_dir: PathBuf) -> Result<(), repak::Error> {
-    let pak_reader = &pak.clone().reader.unwrap();
+    let pak_reader = pak.clone().reader.clone().unwrap();
     // extract the pak first into a temporary dir
     let temp_dir = tempdir().map_err(|e| repak::Error::Io(e))?;
     let temp_path = temp_dir.path(); // Get the path of the temporary directory
@@ -206,7 +208,7 @@ fn create_repak_from_pak(pak: &InstallableMod, mod_dir: PathBuf) -> Result<(), r
         .collect::<Result<Vec<_>, _>>()?;
 
     entries.par_iter().for_each(|entry| {
-        log::info!("Unpacking: {}", entry.entry_path);
+        log::debug!("Unpacking: {}", entry.entry_path);
         fs::create_dir_all(&entry.out_dir).unwrap();
         let mut reader = BufReader::new(File::open(&pak.mod_path).unwrap());
         let buffer = pak_reader.get(&entry.entry_path, &mut reader).expect("Failed to read entry");
@@ -246,7 +248,7 @@ pub fn repak_dir(pak: &InstallableMod, to_pak_dir: PathBuf,  mod_dir: PathBuf) -
     let entry_builder = pak_writer.entry_builder();
 
     let partial_entry = paths
-        .iter()
+        .par_iter()
         .map(|p| {
             let rel = &p
                 .strip_prefix(to_pak_dir.clone())
@@ -273,14 +275,25 @@ pub fn repak_dir(pak: &InstallableMod, to_pak_dir: PathBuf,  mod_dir: PathBuf) -
 pub fn install_mods_in_viewport(
     mods: &mut Vec<InstallableMod>,
     mod_directory: &PathBuf,
-    installed_mods_ptr: &mut f32,
+    installed_mods_ptr: &AtomicI32,
+    stop_thread: &AtomicBool,
 ) {
 
     for installable_mod in mods.iter_mut() {
+
+        if stop_thread.load(Ordering::SeqCst) {
+            warn!("Stopping thread");
+            break;
+        }
+        if !installable_mod.repak && installable_mod.is_dir {
+            // just move files to the correct location
+            info!("Installing mod: {}", installable_mod.mod_name);
+            std::fs::copy(&installable_mod.mod_path, mod_directory.join(format!("{}.pak",&installable_mod.mod_name))).unwrap();
+        }
+
         if installable_mod.repak {
             if let Err(e) = create_repak_from_pak(&installable_mod, mod_directory.clone()) {
                 error!("Failed to create repak from pak: {}", e);
-                installable_mod.failed_to_install = true;
             }
         }
         if installable_mod.is_dir {
@@ -293,8 +306,10 @@ pub fn install_mods_in_viewport(
                     error!("Failed to create repak from pak: {}", e);
                 }
             }
-
         }
-        *installed_mods_ptr+=1.;
+
+        // set i32 to -255 magic value to indicate mod installation is done
+        AtomicI32::fetch_add(installed_mods_ptr, 1,Ordering::SeqCst);
     }
+    AtomicI32::store(installed_mods_ptr, -255,Ordering::SeqCst);
 }

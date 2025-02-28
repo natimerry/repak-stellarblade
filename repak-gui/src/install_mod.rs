@@ -10,11 +10,18 @@ use repak::utils::AesKey;
 use repak::{Compression, PakReader};
 use std::fs::File;
 use std::io::BufReader;
+use std::ops::Deref;
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::sync::LazyLock;
+use std::sync::atomic::{AtomicBool, AtomicI32};
+use std::sync::atomic::Ordering::SeqCst;
+use std::sync::mpsc::Receiver;
+use std::sync::{Arc, LazyLock};
+use std::thread;
+use std::thread::sleep;
+use std::time::Duration;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct InstallableMod {
     pub mod_name: String,
     pub mod_type: String,
@@ -25,7 +32,6 @@ pub struct InstallableMod {
     pub path_hash_seed: String,
     pub mount_point: String,
     pub compression: Compression,
-    pub failed_to_install: bool,
     pub reader: Option<PakReader>,
     pub mod_path: PathBuf,
 }
@@ -34,18 +40,23 @@ pub struct InstallableMod {
 pub struct ModInstallRequest {
     pub(crate) mods: Vec<InstallableMod>,
     pub mod_directory: PathBuf,
-
+    pub animate: bool,
     pub total_mods: f32,
-    pub installed_mods: f32,
+    pub installed_mods_cbk: Arc<AtomicI32>,
+    pub joined_thread: Option<thread::JoinHandle<()>>,
+    pub stop_thread: Arc<AtomicBool>,
 }
 impl ModInstallRequest {
     pub fn new(mods: Vec<InstallableMod>, mod_directory: PathBuf) -> Self {
         let len = mods.len();
         Self {
+            animate: false,
             mods,
             mod_directory,
             total_mods: len as f32,
-            installed_mods: 0.0,
+            installed_mods_cbk: Arc::new(AtomicI32::new(0)),
+            joined_thread: None,
+            stop_thread: Arc::new(AtomicBool::new(false)),
         }
     }
 }
@@ -97,23 +108,45 @@ impl ModInstallRequest {
 
                                 let cancel = ui.add(item(), egui::Button::new("Cancel"));
                                 cancel.clicked().then(|| {
+                                    self.stop_thread.store(true, SeqCst);
                                     *show_callback = false;
                                 });
 
                                 if install_mod.clicked() {
-                                    install_mods_in_viewport(
-                                        &mut self.mods,
-                                        &self.mod_directory,
-                                        &mut self.installed_mods,
-                                    );
+                                    let mut mods =
+                                        self.mods.iter().map(|x| x.clone()).collect::<Vec<_>>(); // clone
+
+                                    let dir = self.mod_directory.clone();
+                                    let new_atomic = self.installed_mods_cbk.clone();
+                                    let new_stop_thread = self.stop_thread.clone();
+                                    self.joined_thread = Some(std::thread::spawn(move || {
+                                        install_mods_in_viewport(&mut mods, &dir, &new_atomic,&new_stop_thread);
+                                    }));
+                                    self.animate = true;
                                 }
                             });
+
+                        let total_mods = self.total_mods.clone() as f32;
+                        let installed = self
+                            .installed_mods_cbk
+                            .load(std::sync::atomic::Ordering::SeqCst);
+                        let mut percentage = installed as f32 / total_mods;
+                        if installed == -255 {
+                            percentage = 1.0;
+                        }
                         ui.add(
-                            egui::ProgressBar::new(self.installed_mods / self.total_mods)
+                            egui::ProgressBar::new(percentage)
                                 .text("Installing mods...")
-                                .animate(true)
+                                .animate(self.animate)
                                 .show_percentage(),
                         );
+
+                        if installed == -255 {
+                            percentage = 1.0;
+                            self.animate = false;
+                            sleep(Duration::from_secs(2));
+                            *show_callback = false;
+                        }
                     });
                 if ctx.input(|i| i.viewport().close_requested()) {
                     // Tell parent viewport that we should not show next frame:
@@ -336,7 +369,6 @@ pub fn map_dropped_file_to_mods(dropped_files: &Vec<egui::DroppedFile>) -> Vec<I
                         return Err(e);
                     }
                 }
-
             }
             if let None = pak {
                 assert!(is_dir);

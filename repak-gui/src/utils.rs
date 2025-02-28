@@ -67,7 +67,6 @@ pub fn get_current_pak_characteristics(mod_contents: Vec<String>) -> String {
     for file in &mod_contents {
         if let Some(stripped) = file.strip_prefix("Marvel/Content/Marvel/") {
             let category = stripped.split('/').into_iter().next().unwrap_or_default();
-
             if category == "Characters" {
                 // Extract the ID from the file path
                 let parts: Vec<&str> = stripped.split('/').collect();
@@ -81,6 +80,12 @@ pub fn get_current_pak_characteristics(mod_contents: Vec<String>) -> String {
             } else if category == "UI" {
                 return "UI".to_string();
             }
+            else if category == "Movies" {
+                return "Movies".to_string();
+            }
+        }
+        if file.contains("WwiseAudio"){
+            return "Audio".to_string();
         }
     }
     "Unknown".to_string()
