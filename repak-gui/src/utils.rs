@@ -86,7 +86,6 @@ pub fn get_current_pak_characteristics(mod_contents: Vec<String>) -> String {
     "Unknown".to_string()
 }
 
-use std::collections::HashSet;
 use log::info;
 
 pub fn find_marvel_rivals() -> Option<PathBuf> {
