@@ -7,6 +7,14 @@ version.workspace = true
 edition.workspace = true
 keywords.workspace = true
 
+
+[profile.release]
+panic = "abort"
+
+[profile.dev]
+panic = "abort"
+
+
 [features]
 default = ["compression", "encryption"]
 compression = ["dep:flate2", "dep:zstd", "dep:lz4_flex"]
@@ -30,3 +38,4 @@ base64.workspace = true
 [dev-dependencies]
 base64 = { workspace = true }
 paste = "1.0.15"
+

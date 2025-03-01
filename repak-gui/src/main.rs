@@ -1,3 +1,5 @@
+extern crate core;
+
 mod file_table;
 mod install_mod;
 mod pak_logic;
@@ -5,10 +7,11 @@ mod utils;
 
 pub mod ios_widget;
 
-use crate::utils::find_marvel_rivals;
 use crate::file_table::FileTable;
 use crate::install_mod::{map_dropped_file_to_mods, map_paths_to_mods, ModInstallRequest, AES_KEY};
-use crate::utils::{ get_current_pak_characteristics};
+use crate::utils::find_marvel_rivals;
+use crate::utils::get_current_pak_characteristics;
+use core::panic::PanicInfo;
 use eframe::egui::{
     self, style::Selection, Align, Button, Color32, Label, ScrollArea, Stroke, Style, TextEdit,
     TextStyle, Theme,
@@ -16,9 +19,11 @@ use eframe::egui::{
 use egui_flex::{item, Flex, FlexAlign};
 use log::{debug, error, info, warn, LevelFilter};
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
+use path_clean::PathClean;
 use repak::PakReader;
-use rfd::FileDialog;
+use rfd::{FileDialog, MessageButtons};
 use serde::{Deserialize, Serialize};
+use simplelog::{ColorChoice, CombinedLogger, Config, TermLogger, TerminalMode, WriteLogger};
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
@@ -26,8 +31,24 @@ use std::sync::mpsc::{channel, Receiver};
 use std::time::Duration;
 use std::usize::MAX;
 use std::{fs, thread};
-use path_clean::PathClean;
-use simplelog::{ColorChoice, CombinedLogger, Config, TermLogger, TerminalMode, WriteLogger};
+use std::panic::PanicHookInfo;
+
+#[cfg(target_os = "windows")]
+#[cfg(build_type = "release")]
+fn custom_panic(_info: &PanicHookInfo) -> ! {
+    let msg = format!(
+"Repak has crashed. Please report this issue to the developer with the following information:\
+\n\n{}\
+\nAdditonally include the log file in the bug report"
+,_info);
+
+    let x = rfd::MessageDialog::new()
+        .set_title("Repak has crashed")
+        .set_buttons(MessageButtons::Ok)
+        .set_description(msg)
+        .show();
+    std::process::exit(1);
+}
 
 // use eframe::egui::WidgetText::RichText;
 #[derive(Deserialize, Serialize, Default)]
@@ -134,7 +155,10 @@ impl RepakModManager {
                 let mut disabled = false;
 
                 if path.extension().unwrap_or_default() != "pak" {
-                    if path.extension().unwrap_or_default() == "pak_disabled" {
+                    // left in option for compatibility reason
+                    if path.extension().unwrap_or_default() == "pak_disabled"
+                        || path.extension().unwrap_or_default() == "bak_repak"
+                    {
                         disabled = true;
                     } else {
                         continue;
@@ -251,10 +275,7 @@ impl RepakModManager {
                             );
                             if pakfile.clicked() {
                                 self.current_pak_file_idx = Some(i);
-                                self.table = Some(FileTable::new(
-                                    &pak_file.reader,
-                                    &pak_file.path,
-                                ));
+                                self.table = Some(FileTable::new(&pak_file.reader, &pak_file.path));
                             }
 
                             ui.with_layout(egui::Layout::right_to_left(Align::RIGHT), |ui| {
@@ -262,7 +283,7 @@ impl RepakModManager {
                                 if toggler.clicked() {
                                     pak_file.enabled = !pak_file.enabled;
                                     if pak_file.enabled {
-                                        let new_pak = &pak_file.path.with_extension("pak_disabled");
+                                        let new_pak = &pak_file.path.with_extension(".bak_repak");
                                         info!("Enabling pak file: {:?}", new_pak);
                                         std::fs::rename(&pak_file.path, new_pak)
                                             .expect("Failed to rename pak file");
@@ -514,9 +535,15 @@ impl RepakModManager {
                         println!("Opening mod folder: {}", self.game_path.to_string_lossy());
                         #[cfg(target_os = "windows")]
                         {
-                            let _ = std::process::Command::new("explorer")
+                            let process = std::process::Command::new("explorer.exe")
                                 .arg(self.game_path.clone())
                                 .spawn();
+
+                            if let Err(e) = process {
+                                error!("Failed to open folder: {}", e);
+                            } else {
+                                info!("Opened mod folder: {}", self.game_path.to_string_lossy());
+                            }
                         }
 
                         #[cfg(target_os = "linux")]
@@ -556,7 +583,6 @@ impl eframe::App for RepakModManager {
             }
         }
         // if install_mod_dialog is open we dont want to listen to events
-
 
         if collect_pak {
             info!("Collecting pak files");
@@ -613,7 +639,7 @@ impl eframe::App for RepakModManager {
     }
 }
 #[cfg(target_os = "windows")]
-#[link(name="Kernel32")]
+#[link(name = "Kernel32")]
 extern "system" {
     fn GetConsoleProcessList(process_list: *mut u32, count: u32) -> u32;
     fn FreeConsole() -> i32;
@@ -631,22 +657,30 @@ fn is_console() -> bool {
     }
 }
 
-
-
 fn main() {
+
+    #[cfg(target_os = "windows")]
+    #[cfg(build_type = "release")]
+    std::panic::set_hook(Box::new(move |info| {
+        custom_panic(info.into());
+    }));
+
     #[cfg(target_os = "windows")]
     if !is_console() {
         free_console();
     }
 
     let log_file = File::create("latest.log").expect("Failed to create log file");
-    let _ = CombinedLogger::init(
-        vec![
-            TermLogger::new(LevelFilter::Info, Config::default(),TerminalMode::Mixed,ColorChoice::Auto),
-            WriteLogger::new(LevelFilter::Info, Config::default(), log_file)
-        ]
-    ).expect("Failed to initialize logger");
-
+    let _ = CombinedLogger::init(vec![
+        TermLogger::new(
+            LevelFilter::Info,
+            Config::default(),
+            TerminalMode::Mixed,
+            ColorChoice::Auto,
+        ),
+        WriteLogger::new(LevelFilter::Info, Config::default(), log_file),
+    ])
+    .expect("Failed to initialize logger");
 
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
