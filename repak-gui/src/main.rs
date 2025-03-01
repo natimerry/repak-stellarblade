@@ -11,8 +11,10 @@ use crate::file_table::FileTable;
 use crate::install_mod::{map_dropped_file_to_mods, map_paths_to_mods, ModInstallRequest, AES_KEY};
 use crate::utils::find_marvel_rivals;
 use crate::utils::get_current_pak_characteristics;
-use core::panic::PanicInfo;
-use eframe::egui::{self, style::Selection, Align, Align2, Button, Color32, Id, Label, LayerId, Order, RichText, ScrollArea, Stroke, Style, TextEdit, TextStyle, Theme};
+use eframe::egui::{
+    self, style::Selection, Align, Align2, Button, Color32, IconData, Id, Label, LayerId, Order,
+    RichText, ScrollArea, Stroke, Style, TextEdit, TextStyle, Theme,
+};
 use egui_flex::{item, Flex, FlexAlign};
 use log::{debug, error, info, warn, LevelFilter};
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
@@ -21,17 +23,17 @@ use repak::PakReader;
 use rfd::{FileDialog, MessageButtons};
 use serde::{Deserialize, Serialize};
 use simplelog::{ColorChoice, CombinedLogger, Config, TermLogger, TerminalMode, WriteLogger};
+use std::cell::LazyCell;
 use std::fs::File;
 use std::io::BufReader;
-use std::panic::PanicHookInfo;
 use std::path::PathBuf;
 use std::sync::mpsc::{channel, Receiver};
+use std::sync::Arc;
 use std::time::Duration;
-use std::usize::MAX;
 use std::{fs, thread};
 
 #[cfg(target_os = "windows")]
-#[cfg(build_type = "release")]
+#[cfg(not(debug_assertions))]
 fn custom_panic(_info: &PanicHookInfo) -> ! {
     let msg = format!(
 "Repak has crashed. Please report this issue to the developer with the following information:\
@@ -166,7 +168,7 @@ impl RepakModManager {
                 builder = builder.key(AES_KEY.clone().0);
                 let pak = builder.reader(&mut BufReader::new(File::open(path.clone()).unwrap()));
 
-                if let Err(e) = pak {
+                if let Err(_e) = pak {
                     warn!("Error opening pak file");
                     continue;
                 }
@@ -182,8 +184,6 @@ impl RepakModManager {
         }
     }
     fn list_pak_contents(&mut self, ui: &mut egui::Ui) -> Result<(), repak::Error> {
-
-
         ui.label("Files");
         ui.separator();
         let ctx = ui.ctx();
@@ -295,31 +295,53 @@ impl RepakModManager {
                                     Label::new(
                                         RichText::new(pak_print).strong().background_color(color),
                                     )
-                                        .truncate()
-                                        .selectable(true),
+                                    .truncate()
+                                    .selectable(true),
                                 );
 
                                 if pakfile.clicked() {
                                     self.current_pak_file_idx = Some(i);
-                                    self.table = Some(FileTable::new(&pak_file.reader, &pak_file.path));
+                                    self.table =
+                                        Some(FileTable::new(&pak_file.reader, &pak_file.path));
                                 }
                             });
-
 
                             ui.with_layout(egui::Layout::right_to_left(Align::RIGHT), |ui| {
                                 let toggler = ui.add(ios_widget::toggle(&mut pak_file.enabled));
                                 if toggler.clicked() {
                                     pak_file.enabled = !pak_file.enabled;
                                     if pak_file.enabled {
-                                        let new_pak = &pak_file.path.with_extension(".bak_repak");
+                                        let new_pak = &pak_file.path.with_extension("bak_repak");
                                         info!("Enabling pak file: {:?}", new_pak);
-                                        std::fs::rename(&pak_file.path, new_pak)
-                                            .expect("Failed to rename pak file");
+                                        match std::fs::rename(&pak_file.path, new_pak) {
+                                            Ok(_) => {
+                                                info!("Renamed pak file: {:?}", new_pak);
+                                            }
+                                            Err(e) => {
+                                                warn!("Failed to rename pak file: {:?}", e);
+                                                rfd::MessageDialog::new()
+                                                    .set_buttons(MessageButtons::Ok)
+                                                    .set_title("Failed to toggle mod")
+                                                    .set_description("Failed to rename pak file. Make sure game is not running.")
+                                                    .show();
+                                            }
+                                        }
                                     } else {
                                         let new_pak = &pak_file.path.with_extension("pak");
-                                        std::fs::rename(&pak_file.path, new_pak)
-                                            .expect("Failed to rename pak file");
-                                        let _ = std::fs::rename(&pak_file.path, new_pak);
+                                        debug!("Disabling pak file: {:?}", pak_file.path);
+                                        match std::fs::rename(&pak_file.path, new_pak) {
+                                            Ok(_) => {
+                                                info!("Renamed pak file: {:?}", new_pak);
+                                            }
+                                            Err(e) => {
+                                                warn!("Failed to rename pak file: {:?}", e);
+                                                rfd::MessageDialog::new()
+                                                    .set_buttons(MessageButtons::Ok)
+                                                    .set_title("Failed to toggle mod")
+                                                    .set_description("Failed to rename pak file. Make sure game is not running.")
+                                                    .show();
+                                            }
+                                        }
                                     }
                                 }
                             });
@@ -332,6 +354,8 @@ impl RepakModManager {
         let mut path = dirs::config_dir()
             .unwrap_or_else(|| PathBuf::from("."))
             .join("repak_manager");
+
+        debug!("Config path: {}", path.to_string_lossy());
         if !path.exists() {
             fs::create_dir_all(&path).unwrap();
             info!("Created config directory: {}", path.to_string_lossy());
@@ -344,16 +368,20 @@ impl RepakModManager {
 
     fn load(ctx: &eframe::CreationContext) -> std::io::Result<Self> {
         let (tx, rx) = channel();
-
         let path = Self::config_path();
         let mut shit = if path.exists() {
             info!("Loading config: {}", path.to_string_lossy());
             let data = fs::read_to_string(path)?;
             let mut config: Self = serde_json::from_str(&data)?;
 
+            debug!("Setting custom style");
             setup_custom_style(&ctx.egui_ctx);
+            debug!("Setting font size: {}", config.default_font_size);
             set_custom_font_size(&ctx.egui_ctx, config.default_font_size);
+
+            info!("Loading mods: {}", config.game_path.to_string_lossy());
             config.collect_pak_files();
+
             config.receiver = Some(rx);
 
             Ok(config)
@@ -684,9 +712,18 @@ fn is_console() -> bool {
     }
 }
 
+const ICON: LazyCell<Arc<IconData>> = LazyCell::new(|| {
+    let d = eframe::icon_data::from_png_bytes(include_bytes!(
+        "../../repak-gui/icons/RepakLogoNonCurveFadedRed-modified.png"
+    ))
+    .expect("The icon data must be valid");
+
+    Arc::new(d)
+});
+
 fn main() {
     #[cfg(target_os = "windows")]
-    #[cfg(build_type = "release")]
+    #[cfg(not(debug_assertions))]
     std::panic::set_hook(Box::new(move |info| {
         custom_panic(info.into());
     }));
@@ -697,9 +734,15 @@ fn main() {
     }
 
     let log_file = File::create("latest.log").expect("Failed to create log file");
+    let level_filter = if cfg!(debug_assertions) {
+        LevelFilter::Debug
+    } else {
+        LevelFilter::Info
+    };
+
     let _ = CombinedLogger::init(vec![
         TermLogger::new(
-            LevelFilter::Info,
+            level_filter,
             Config::default(),
             TerminalMode::Mixed,
             ColorChoice::Auto,
@@ -712,7 +755,8 @@ fn main() {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1366.0, 768.0])
             .with_min_inner_size([1100.0, 650.])
-            .with_drag_and_drop(true),
+            .with_drag_and_drop(true)
+            .with_icon(ICON.clone()),
         ..Default::default()
     };
 

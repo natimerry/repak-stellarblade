@@ -388,8 +388,6 @@ impl Pak {
         // read index to get all the entry info
         reader.seek(io::SeekFrom::Start(footer.index_offset))?;
 
-        let index_offset = footer.index_offset;
-
         #[allow(unused_mut)]
         let mut index = reader.read_len(footer.index_size as usize)?;
 

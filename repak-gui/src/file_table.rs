@@ -2,7 +2,6 @@ use eframe::egui;
 use eframe::egui::OutputCommand::CopyText;
 use eframe::egui::RichText;
 use egui_extras::{Column, TableBuilder};
-use repak::entry::Entry;
 use repak::PakReader;
 use rfd::FileDialog;
 use sha2::Digest;
@@ -113,7 +112,7 @@ impl FileTable {
                 //     ui.label("Compression Slot");
                 // });
             })
-            .body(|mut body| {
+            .body(|body| {
                 // let mut file = self.file_contents.clone();
                 body.rows(20.0, self.file_contents.len(),|mut row| {
                     let row_idx = row.index();
