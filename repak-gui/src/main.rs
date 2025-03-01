@@ -13,8 +13,8 @@ use crate::utils::find_marvel_rivals;
 use crate::utils::get_current_pak_characteristics;
 use core::panic::PanicInfo;
 use eframe::egui::{
-    self, style::Selection, Align, Button, Color32, Label, ScrollArea, Stroke, Style, TextEdit,
-    TextStyle, Theme,
+    self, style::Selection, Align, Button, Color32, Label, RichText, ScrollArea, Stroke, Style,
+    TextEdit, TextStyle, Theme,
 };
 use egui_flex::{item, Flex, FlexAlign};
 use log::{debug, error, info, warn, LevelFilter};
@@ -26,12 +26,12 @@ use serde::{Deserialize, Serialize};
 use simplelog::{ColorChoice, CombinedLogger, Config, TermLogger, TerminalMode, WriteLogger};
 use std::fs::File;
 use std::io::BufReader;
+use std::panic::PanicHookInfo;
 use std::path::PathBuf;
 use std::sync::mpsc::{channel, Receiver};
 use std::time::Duration;
 use std::usize::MAX;
 use std::{fs, thread};
-use std::panic::PanicHookInfo;
 
 #[cfg(target_os = "windows")]
 #[cfg(build_type = "release")]
@@ -264,19 +264,34 @@ impl RepakModManager {
                     for (i, pak_file) in self.pak_files.iter_mut().enumerate() {
                         ui.horizontal(|ui| {
                             if let Some(_idx) = self.current_pak_file_idx {}
-                            let pakfile = ui.selectable_label(
-                                i == self.current_pak_file_idx.unwrap_or(MAX),
-                                pak_file
+                            ui.with_layout(egui::Layout::left_to_right(Align::LEFT), |ui| {
+                                ui.set_max_width(ui.available_width() * 0.85);
+                                let pak_print = pak_file
                                     .path
                                     .file_stem()
                                     .unwrap()
                                     .to_string_lossy()
-                                    .to_string(),
-                            );
-                            if pakfile.clicked() {
-                                self.current_pak_file_idx = Some(i);
-                                self.table = Some(FileTable::new(&pak_file.reader, &pak_file.path));
-                            }
+                                    .to_string();
+
+                                let color = if self.current_pak_file_idx == Some(i) {
+                                    Color32::from_hex("#f71034").unwrap()
+                                } else {
+                                    ui.style().visuals.faint_bg_color
+                                };
+                                let pakfile = ui.add(
+                                    Label::new(
+                                        RichText::new(pak_print).strong().background_color(color),
+                                    )
+                                        .truncate()
+                                        .selectable(true),
+                                );
+
+                                if pakfile.clicked() {
+                                    self.current_pak_file_idx = Some(i);
+                                    self.table = Some(FileTable::new(&pak_file.reader, &pak_file.path));
+                                }
+                            });
+
 
                             ui.with_layout(egui::Layout::right_to_left(Align::RIGHT), |ui| {
                                 let toggler = ui.add(ios_widget::toggle(&mut pak_file.enabled));
@@ -658,7 +673,6 @@ fn is_console() -> bool {
 }
 
 fn main() {
-
     #[cfg(target_os = "windows")]
     #[cfg(build_type = "release")]
     std::panic::set_hook(Box::new(move |info| {
