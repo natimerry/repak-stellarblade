@@ -42,7 +42,7 @@ fn custom_panic(_info: &PanicHookInfo) -> ! {
 \nAdditonally include the log file in the bug report"
 ,_info);
 
-    let x = rfd::MessageDialog::new()
+    let _x = rfd::MessageDialog::new()
         .set_title("Repak has crashed")
         .set_buttons(MessageButtons::Ok)
         .set_description(msg)
@@ -598,9 +598,12 @@ impl RepakModManager {
 
                             if let Err(e) = process {
                                 error!("Failed to open folder: {}", e);
+                                return;
                             } else {
                                 info!("Opened mod folder: {}", self.game_path.to_string_lossy());
                             }
+                            process.unwrap().wait().unwrap();
+
                         }
 
                         #[cfg(target_os = "linux")]
