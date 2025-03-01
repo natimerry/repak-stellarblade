@@ -12,10 +12,7 @@ use crate::install_mod::{map_dropped_file_to_mods, map_paths_to_mods, ModInstall
 use crate::utils::find_marvel_rivals;
 use crate::utils::get_current_pak_characteristics;
 use core::panic::PanicInfo;
-use eframe::egui::{
-    self, style::Selection, Align, Button, Color32, Label, RichText, ScrollArea, Stroke, Style,
-    TextEdit, TextStyle, Theme,
-};
+use eframe::egui::{self, style::Selection, Align, Align2, Button, Color32, Id, Label, LayerId, Order, RichText, ScrollArea, Stroke, Style, TextEdit, TextStyle, Theme};
 use egui_flex::{item, Flex, FlexAlign};
 use log::{debug, error, info, warn, LevelFilter};
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
@@ -185,12 +182,28 @@ impl RepakModManager {
         }
     }
     fn list_pak_contents(&mut self, ui: &mut egui::Ui) -> Result<(), repak::Error> {
-        if let None = self.current_pak_file_idx {
-            return Ok(());
-        }
+
 
         ui.label("Files");
         ui.separator();
+        let ctx = ui.ctx();
+        self.preview_files_being_dropped(&ctx, ui.available_rect_before_wrap());
+
+        if self.current_pak_file_idx.is_none() && ctx.input(|i| i.raw.hovered_files.is_empty()) {
+            let rect = ui.available_rect_before_wrap();
+            let painter =
+                ctx.layer_painter(LayerId::new(Order::Foreground, Id::new("file_drop_target")));
+
+            let color = ui.style().visuals.faint_bg_color;
+            painter.rect_filled(rect, 0.0, color);
+            painter.text(
+                rect.center(),
+                Align2::CENTER_CENTER,
+                "Drop .pak files or mod folders here",
+                TextStyle::Heading.resolve(&ctx.style()),
+                Color32::WHITE,
+            );
+        }
         ScrollArea::horizontal()
             .auto_shrink([false, false])
             .show(ui, |ui| {
@@ -638,7 +651,6 @@ impl eframe::App for RepakModManager {
             });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            self.preview_files_being_dropped(&ctx, ui.available_rect_before_wrap());
             self.list_pak_contents(ui).expect("TODO: panic message");
         });
 
