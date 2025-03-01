@@ -1,5 +1,5 @@
 use crate::pak_logic::install_mods_in_viewport;
-use crate::setup_custom_style;
+use crate::{setup_custom_style, ICON};
 use crate::utils::get_current_pak_characteristics;
 use eframe::egui;
 use eframe::egui::{Align, Checkbox, ComboBox, Context, Label, TextEdit};
@@ -10,12 +10,10 @@ use repak::utils::AesKey;
 use repak::{Compression, PakReader};
 use std::fs::File;
 use std::io::BufReader;
-use std::ops::Deref;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::atomic::{AtomicBool, AtomicI32};
 use std::sync::atomic::Ordering::SeqCst;
-use std::sync::mpsc::Receiver;
 use std::sync::{Arc, LazyLock};
 use std::thread;
 use std::thread::sleep;
@@ -63,7 +61,8 @@ impl ModInstallRequest {
 impl ModInstallRequest {
     pub fn new_mod_dialog(&mut self, ctx: &egui::Context, show_callback: &mut bool) {
         let viewport_options = egui::ViewportBuilder::default()
-            .with_title("Deferred Viewport")
+            .with_title("Install mods")
+            .with_icon(ICON.clone())
             .with_inner_size([1000.0, 800.0])
             .with_always_on_top();
 
@@ -142,7 +141,6 @@ impl ModInstallRequest {
                         );
 
                         if installed == -255 {
-                            percentage = 1.0;
                             self.animate = false;
                             sleep(Duration::from_secs(2));
                             *show_callback = false;

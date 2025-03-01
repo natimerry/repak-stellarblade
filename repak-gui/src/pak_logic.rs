@@ -1,4 +1,3 @@
-use std::fmt::format;
 use crate::install_mod::{InstallableMod, AES_KEY};
 use crate::utils::collect_files;
 use colored::Colorize;
