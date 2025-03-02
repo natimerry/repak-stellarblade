@@ -3,6 +3,7 @@ from cryptography.hazmat.backends import default_backend
 import base64
 import binascii
 import os
+import glob
 
 class AesKey:
     def __init__(self, key_bytes):
@@ -54,27 +55,29 @@ def decrypt_chunks(data, key):
 def decrypt_data(encrypted_data, aes_key):
     return decrypt_chunks(encrypted_data, aes_key.key)
 
-try:
-    with open("encrypted_index.bin", 'rb') as f:
-        encrypted_data = f.read()
-        encrypted_size = len(encrypted_data)
+key_hex = "0x0C263D8C22DCB085894899C3A3796383E9BF9DE0CBFB08C9BF2DEF2E84F29D74"
+aes_key = AesKey.from_str(key_hex)
 
-        key_hex = "0x0C263D8C22DCB085894899C3A3796383E9BF9DE0CBFB08C9BF2DEF2E84F29D74"
-        aes_key = AesKey.from_str(key_hex)
+if aes_key is None:
+    print("Error: Invalid key format.")
+else:
+    for encrypted_file in glob.glob("encrypted_*"):
+        try:
+            with open(encrypted_file, 'rb') as f:
+                encrypted_data = f.read()
+                encrypted_size = len(encrypted_data)
 
-        if aes_key is None:
-            raise ValueError("Invalid key format.")
+            unencrypted_bytes = decrypt_data(encrypted_data, aes_key)
 
-        unencrypted_bytes = decrypt_data(encrypted_data, aes_key)
+            decrypted_filename = encrypted_file.replace("encrypted_", "decrypted_")
+            with open(decrypted_filename, "wb") as out_file:
+                out_file.write(unencrypted_bytes[:encrypted_size])
 
-        with open("decrypted_index.bin", "wb") as out_file:
-            out_file.write(unencrypted_bytes[:encrypted_size]) #truncate to the size of the encrypted file.
+            print(f"Decryption complete. Wrote {encrypted_size} bytes to {decrypted_filename}")
 
-        print(f"Decryption complete. Wrote {encrypted_size} bytes to decrypted_index.bin")
-
-except FileNotFoundError:
-    print("Error: encrypted_index.bin not found.")
-except ValueError as e:
-    print(f"Error: {e}")
-except Exception as e:
-    print(f"An unexpected error occurred: {e}")
+        except FileNotFoundError:
+            print(f"Error: {encrypted_file} not found.")
+        except ValueError as e:
+            print(f"Error: {e}")
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
