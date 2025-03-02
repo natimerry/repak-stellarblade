@@ -8,3 +8,5 @@
 /latest.log
 /repak/tests/pack/patched_files
 /repak-gui/latest.log
+/imhex_patterns/.venv/
+/imhex_patterns/*.bin

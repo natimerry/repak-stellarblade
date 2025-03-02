@@ -399,6 +399,7 @@ impl Pak {
             crate::data::decrypt(key, &mut index)?;
         }
 
+
         let mut index = io::Cursor::new(index);
         let mount_point = index.read_string()?;
         let len = index.read_u32::<LE>()? as usize;

@@ -33,22 +33,7 @@ use std::time::Duration;
 use std::{fs, thread};
 use std::panic::PanicHookInfo;
 
-#[cfg(target_os = "windows")]
-#[cfg(not(debug_assertions))]
-fn custom_panic(_info: &PanicHookInfo) -> ! {
-    let msg = format!(
-"Repak has crashed. Please report this issue to the developer with the following information:\
-\n\n{}\
-\nAdditonally include the log file in the bug report"
-,_info);
 
-    let _x = rfd::MessageDialog::new()
-        .set_title("Repak has crashed")
-        .set_buttons(MessageButtons::Ok)
-        .set_description(msg)
-        .show();
-    std::process::exit(1);
-}
 
 // use eframe::egui::WidgetText::RichText;
 #[derive(Deserialize, Serialize, Default)]
@@ -697,6 +682,18 @@ impl eframe::App for RepakModManager {
         }
     }
 }
+
+const ICON: LazyCell<Arc<IconData>> = LazyCell::new(|| {
+    let d = eframe::icon_data::from_png_bytes(include_bytes!(
+        "../../repak-gui/icons/RepakLogoNonCurveFadedRed-modified.png"
+    ))
+        .expect("The icon data must be valid");
+
+    Arc::new(d)
+});
+
+
+
 #[cfg(target_os = "windows")]
 #[link(name = "Kernel32")]
 extern "system" {
@@ -705,6 +702,9 @@ extern "system" {
 }
 #[cfg(target_os = "windows")]
 fn free_console() -> bool {
+    if !is_console() {
+        free_console();
+    }
     unsafe { FreeConsole() == 0 }
 }
 #[cfg(target_os = "windows")]
@@ -716,14 +716,22 @@ fn is_console() -> bool {
     }
 }
 
-const ICON: LazyCell<Arc<IconData>> = LazyCell::new(|| {
-    let d = eframe::icon_data::from_png_bytes(include_bytes!(
-        "../../repak-gui/icons/RepakLogoNonCurveFadedRed-modified.png"
-    ))
-    .expect("The icon data must be valid");
+#[cfg(target_os = "windows")]
+#[cfg(not(debug_assertions))]
+fn custom_panic(_info: &PanicHookInfo) -> ! {
+    let msg = format!(
+        "Repak has crashed. Please report this issue to the developer with the following information:\
+\n\n{}\
+\nAdditonally include the log file in the bug report"
+        ,_info);
 
-    Arc::new(d)
-});
+    let _x = rfd::MessageDialog::new()
+        .set_title("Repak has crashed")
+        .set_buttons(MessageButtons::Ok)
+        .set_description(msg)
+        .show();
+    std::process::exit(1);
+}
 
 fn main() {
     #[cfg(target_os = "windows")]
@@ -731,11 +739,6 @@ fn main() {
     std::panic::set_hook(Box::new(move |info| {
         custom_panic(info.into());
     }));
-
-    #[cfg(target_os = "windows")]
-    if !is_console() {
-        free_console();
-    }
 
     let log_file = File::create("latest.log").expect("Failed to create log file");
     let level_filter = if cfg!(debug_assertions) {
