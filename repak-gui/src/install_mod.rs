@@ -142,7 +142,6 @@ impl ModInstallRequest {
 
                         if installed == -255 {
                             self.animate = false;
-                            sleep(Duration::from_secs(2));
                             *show_callback = false;
                         }
                     });

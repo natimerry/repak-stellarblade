@@ -1,7 +1,7 @@
 use crate::install_mod::{InstallableMod, AES_KEY};
 use crate::utils::collect_files;
 use colored::Colorize;
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 use path_clean::PathClean;
 use path_slash::PathExt;
 use rayon::iter::IntoParallelRefIterator;
@@ -213,7 +213,7 @@ fn create_repak_from_pak(pak: &InstallableMod, mod_dir: PathBuf) -> Result<(), r
         let buffer = pak_reader.get(&entry.entry_path, &mut reader).expect("Failed to read entry");
 
         File::create(&entry.out_path).unwrap().write_all(&buffer).unwrap();
-        log::debug!("Unpacked: {:?}", entry.out_path);
+        log::info!("Unpacked: {:?}", entry.out_path);
 
     });
 
@@ -262,12 +262,12 @@ pub fn repak_dir(pak: &InstallableMod, to_pak_dir: PathBuf,  mod_dir: PathBuf) -
         })
         .collect::<Vec<_>>();
     for (path, entry) in partial_entry {
-        info!("Writing: {}", path);
+        debug!("Writing: {}", path);
         pak_writer.write_entry(path, entry)?;
     }
     pak_writer.write_index()?;
 
-    log::debug!("Wrote pak file successfully");
+    log::info!("Wrote pak file successfully");
     Ok::<(), repak::Error>(())
 }
 
