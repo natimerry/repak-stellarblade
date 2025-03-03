@@ -73,6 +73,14 @@ static TEST_DATA_VERY_MASSIVE: LazyLock<(Vec<String>, Vec<String>)> = LazyLock::
 
 
 pub fn criterion_benchmark_simd_vs_native(c: &mut Criterion) {
+
+    let (haystack1, haystack2) = TEST_DATA_VERY_MASSIVE.clone();
+    benchmark_for_size(c, "SIMD 64-bit MASSIVE", &haystack1, &haystack2, compare_string_vectors);
+    benchmark_for_size(c, "SIMD 128-bit MASSIVE", &haystack1, &haystack2, compare_string_vectors);
+    benchmark_for_size(c, "SIMD 256-bit MASSIVE", &haystack1, &haystack2, compare_string_vectors);
+    benchmark_for_size(c, "Native MASSIVE", &haystack1, &haystack2, compare_string_vectors_naive);
+
+
     // 16-byte strings benchmark.
     let (data16_1, data16_2) = TEST_DATA_16.clone();
     c.bench_function("SIMD + Rayon (16-bit)", |b| {
@@ -184,20 +192,21 @@ pub fn criterion_benchmark_simd_vs_native(c: &mut Criterion) {
     });
 
 
-    let (haystack1, haystack2) = TEST_DATA_VERY_MASSIVE.clone();
+}
 
-    c.bench_function("SIMD+ RAYON MASSIVE", |b| {
+/// Helper function to register a benchmark for a given dataset and function.
+fn benchmark_for_size(
+    c: &mut Criterion,
+    label: &str,
+    haystack1: &Vec<String>,
+    haystack2: &Vec<String>,
+    simd_fn: fn(Vec<String>, Vec<String>) -> Vec<(usize, usize)>,
+) {
+    c.bench_function(label, |b| {
         b.iter(|| {
-            let _ = compare_string_vectors(black_box(haystack1.clone()), black_box(haystack2.clone()));
+            let _ = simd_fn(black_box(haystack1.clone()), black_box(haystack2.clone()));
         })
     });
-
-    c.bench_function("Native", |b| {
-        b.iter(|| {
-            let _ = compare_string_vectors_naive(black_box(haystack1.clone()), black_box(haystack2.clone()));
-        })
-    });
-
 }
 
 

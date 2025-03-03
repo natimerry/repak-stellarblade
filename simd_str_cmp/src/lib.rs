@@ -228,7 +228,6 @@ fn compare_bytes_simd_dynamic(a: &[u8], b: &[u8]) -> bool {
     }
     let len = a.len();
     if len < 16 {
-        // For very small slices, a direct byte-by-byte comparison is best.
         a == b
     } else if len < 32 {
         // Use SIMD in 16-byte chunks.
