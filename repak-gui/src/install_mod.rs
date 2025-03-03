@@ -1,11 +1,11 @@
 use crate::pak_logic::install_mods_in_viewport;
 use crate::{setup_custom_style, ICON};
-use crate::utils::get_current_pak_characteristics;
+use crate::utils::{collect_files, get_current_pak_characteristics};
 use eframe::egui;
 use eframe::egui::{Align, Checkbox, ComboBox, Context, Label, TextEdit};
 use egui_extras::{Column, TableBuilder};
 use egui_flex::{item, Flex, FlexAlign};
-use log::error;
+use log::{debug, error, info, warn};
 use repak::utils::AesKey;
 use repak::{Compression, PakReader};
 use std::fs::File;
@@ -18,6 +18,7 @@ use std::sync::{Arc, LazyLock};
 use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
+use simd_str_cmp::compare_string_vectors;
 
 #[derive(Debug, Default, Clone)]
 pub struct InstallableMod {
@@ -47,6 +48,8 @@ pub struct ModInstallRequest {
 impl ModInstallRequest {
     pub fn new(mods: Vec<InstallableMod>, mod_directory: PathBuf) -> Self {
         let len = mods.len();
+        check_mod_file_collisions(&mods);
+
         Self {
             animate: false,
             mods,
@@ -296,8 +299,46 @@ pub const AES_KEY: LazyLock<AesKey> = LazyLock::new(|| {
         .expect("Unable to initialise AES_KEY")
 });
 
+fn build_conflict_path_list(installable_mod: &InstallableMod) -> Vec<String>{
+    let mut files = vec![];
+    if installable_mod.is_dir{
+        let mut paths = Vec::new();
+        collect_files(&mut paths, &installable_mod.mod_path).expect("Failed to collect files");
+        files = paths.iter().map(|x|x.to_str().unwrap().to_string()).collect::<Vec<String>>();
+    }
+    else {
+        files = installable_mod.reader.clone().unwrap().files();
+    }
+    files
+}
+fn check_mod_file_collisions(mod_list: &[InstallableMod]) -> Vec<(String,String)>{
+    let mut conflicts: Vec<(String,String)> = Vec::new();
+    for (i,mod1) in mod_list.iter().enumerate() {
+        let mut files1: Vec<String> = build_conflict_path_list(mod1);
+        debug!("Len of files21 {}", files1.len());
+        
+        for mod2 in mod_list.iter().skip(i+1) {
+            let mut files2: Vec<String> = build_conflict_path_list(mod2);
+            debug!("Len of files2: {}", files2.len());
+            let conflict_idx = compare_string_vectors(&files1, &files2);
+            if conflict_idx.is_empty(){
+                debug!("Mod1 and Mod2 have no conflicts");
+            }
+            else{
+                println!("Mod1 and Mod2 have {} conflicts", conflict_idx.len());
+                for (i,j) in conflict_idx{
+                    conflicts.push((files1[i].clone(),files2[j].clone()));
+                    warn!("Conflicting {} in {} and {}",files1[i],&mod1.mod_name,&mod2.mod_name);
+                }
+            }
+        }
+    }
+
+    conflicts
+}
+
 pub fn map_paths_to_mods(paths: &Vec<PathBuf>) -> Vec<InstallableMod> {
-    paths
+    let installable_mods = paths
         .into_iter()
         .map(|path| {
             let is_dir = path.clone().is_dir();
@@ -339,7 +380,10 @@ pub fn map_paths_to_mods(paths: &Vec<PathBuf>) -> Vec<InstallableMod> {
             })
         })
         .filter_map(|x: Result<InstallableMod, repak::Error>| x.ok())
-        .collect::<Vec<_>>()
+        .collect::<Vec<_>>();
+
+
+    installable_mods
 }
 
 pub fn map_dropped_file_to_mods(dropped_files: &Vec<egui::DroppedFile>) -> Vec<InstallableMod> {

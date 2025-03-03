@@ -35,6 +35,7 @@ uasset-mesh-patch-rivals = {path = "../uasset-mesh-patch-rivals"}
 colored = "3.0.0"
 notify = "8.0.0"
 simplelog = "0.12.2"
+simd_str_cmp = {path = "../simd_str_cmp"}
 
 
 [build-dependencies]
