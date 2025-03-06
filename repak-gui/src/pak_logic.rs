@@ -159,11 +159,8 @@ fn mesh_patch(paths: &mut Vec<PathBuf>, mod_dir: &PathBuf) -> Result<(), repak::
     Ok(())
 }
 
-fn create_repak_from_pak(pak: &InstallableMod, mod_dir: PathBuf) -> Result<(), repak::Error> {
+pub fn extract_pak_to_dir(pak: &InstallableMod, install_dir: PathBuf) -> Result<(),repak::Error>{
     let pak_reader = pak.clone().reader.clone().unwrap();
-    // extract the pak first into a temporary dir
-    let temp_dir = tempdir().map_err(|e| repak::Error::Io(e))?;
-    let temp_path = temp_dir.path(); // Get the path of the temporary directory
 
     let mount_point = PathBuf::from(pak_reader.mount_point());
     let prefix = Path::new("../../../");
@@ -180,7 +177,7 @@ fn create_repak_from_pak(pak: &InstallableMod, mod_dir: PathBuf) -> Result<(), r
         .map(|entry| {
             let full_path = mount_point.join(&entry);
             let out_path =
-                temp_path
+                install_dir
                     .join(full_path.strip_prefix(prefix).map_err(|_| {
                         repak::Error::PrefixMismatch {
                             path: full_path.to_string_lossy().to_string(),
@@ -189,7 +186,7 @@ fn create_repak_from_pak(pak: &InstallableMod, mod_dir: PathBuf) -> Result<(), r
                     })?)
                     .clean();
 
-            if !out_path.starts_with(&temp_path) {
+            if !out_path.starts_with(&install_dir) {
                 return Err(repak::Error::WriteOutsideOutput(
                     out_path.to_string_lossy().to_string(),
                 ));
@@ -216,6 +213,14 @@ fn create_repak_from_pak(pak: &InstallableMod, mod_dir: PathBuf) -> Result<(), r
         log::info!("Unpacked: {:?}", entry.out_path);
 
     });
+    Ok(())
+}
+fn create_repak_from_pak(pak: &InstallableMod, mod_dir: PathBuf) -> Result<(), repak::Error> {
+    // extract the pak first into a temporary dir
+    let temp_dir = tempdir().map_err(|e| repak::Error::Io(e))?;
+    let temp_path = temp_dir.path(); // Get the path of the temporary directory
+
+    extract_pak_to_dir(pak, temp_path.to_path_buf())?;
 
     repak_dir(pak, PathBuf::from(temp_path), mod_dir)?;
     Ok(())

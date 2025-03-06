@@ -8,7 +8,7 @@ mod utils;
 pub mod ios_widget;
 
 use crate::file_table::FileTable;
-use crate::install_mod::{map_dropped_file_to_mods, map_paths_to_mods, ModInstallRequest, AES_KEY};
+use crate::install_mod::{map_dropped_file_to_mods, map_paths_to_mods, InstallableMod, ModInstallRequest, AES_KEY};
 use crate::utils::find_marvel_rivals;
 use crate::utils::get_current_pak_characteristics;
 use eframe::egui::{
@@ -32,8 +32,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use std::{fs, thread};
 use std::panic::PanicHookInfo;
-
-
+use crate::pak_logic::extract_pak_to_dir;
 
 // use eframe::egui::WidgetText::RichText;
 #[derive(Deserialize, Serialize, Default)]
@@ -290,6 +289,28 @@ impl RepakModManager {
                                     self.table =
                                         Some(FileTable::new(&pak_file.reader, &pak_file.path));
                                 }
+                                pakfile.context_menu(|ui| {
+                                    if ui.button("Extract pak to directory").clicked(){
+                                        self.current_pak_file_idx = Some(i);
+                                        let dir = rfd::FileDialog::new().pick_folder();
+                                        if let Some(dir) = dir {
+                                            let mod_name = pak_file.path.file_stem().unwrap().to_string_lossy().to_string();
+                                            let to_create = dir.join(&mod_name);
+                                            fs::create_dir_all(&to_create).unwrap();
+
+                                            let installable_mod = InstallableMod{
+                                                mod_name: mod_name.clone(),
+                                                mod_type: "".to_string(),
+                                                reader: Option::from(pak_file.reader.clone()),
+                                                mod_path: pak_file.path.clone(),
+                                                ..Default::default()
+                                            };
+                                            if let Err(e) = extract_pak_to_dir(&installable_mod,to_create){
+                                                error!("Failed to extract pak directory: {}",e);
+                                            }
+                                        }
+                                    }
+                                });
                             });
 
                             ui.with_layout(egui::Layout::right_to_left(Align::RIGHT), |ui| {

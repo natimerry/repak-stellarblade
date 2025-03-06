@@ -79,7 +79,6 @@ pub fn get_current_pak_characteristics(mod_contents: Vec<String>) -> String {
                 if let Some(mod_type) = mod_type {
                     match mod_type {
                         ModType::Default(default) => {
-                            info!("Default skin, we keep looping");
                             is_default = Some(default);
                         }
                         ModType::Custom(skin_name) => return skin_name,
