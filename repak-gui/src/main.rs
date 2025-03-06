@@ -729,6 +729,7 @@ fn is_console() -> bool {
         count != 1
     }
 }
+use std::panic::PanicHookInfo;
 
 #[cfg(target_os = "windows")]
 #[cfg(not(debug_assertions))]

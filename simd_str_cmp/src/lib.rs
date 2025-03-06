@@ -9,7 +9,6 @@ use std::arch::x86_64::{
 };
 use std::simd::cmp::SimdPartialEq;
 use std::simd::Simd;
-
 /// Compares two 16-byte slices using a 16-lane SIMD vector.
 pub fn bytes_cmp_simd_16(a: &[u8], b: &[u8]) -> bool {
     // Ensure the slices have exactly 16 elements.
