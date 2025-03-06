@@ -3315,7 +3315,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "simd_str_cmp",
  "simplelog",
  "tempfile",
  "uasset-mesh-patch-rivals",
@@ -3603,6 +3602,7 @@ name = "simd_str_cmp"
 version = "1.2.2"
 dependencies = [
  "criterion",
+ "once_cell",
  "rayon",
 ]
 

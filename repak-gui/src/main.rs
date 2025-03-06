@@ -456,8 +456,10 @@ impl RepakModManager {
                         return;
                     }
                     self.file_drop_viewport_open = true;
+                    debug!("Mods: {:?}", mods);
                     self.install_mod_dialog =
                         Some(ModInstallRequest::new(mods, self.game_path.clone()));
+                    debug!("Installing mod: {:?}", &self.install_mod_dialog);
                 } else {
                     // Handle the case where not all dropped files are valid
                     // You can show an error or prompt the user here

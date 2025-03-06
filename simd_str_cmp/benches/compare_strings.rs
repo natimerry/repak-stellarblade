@@ -1,8 +1,6 @@
 use std::sync::LazyLock;
-use std::time::Duration;
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkGroup, Criterion, Throughput};
-use criterion::measurement::WallTime;
-use simd_str_cmp::{compare_string_vectors, compare_string_vectors_naive, compare_string_vectors_simd};
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use simd_str_cmp::{compare_string_vectors, compare_string_vectors_naive};
 
 // Generate test data for 16-byte strings.
 static TEST_DATA_16: LazyLock<(Vec<String>, Vec<String>)> = LazyLock::new(|| {
@@ -34,6 +32,36 @@ static TEST_DATA_64: LazyLock<(Vec<String>, Vec<String>)> = LazyLock::new(|| {
     (haystack1, haystack2)
 });
 
+// Generate test data for 128-byte strings.
+static TEST_DATA_128: LazyLock<(Vec<String>, Vec<String>)> = LazyLock::new(|| {
+    let size = 1000;
+    let string_length = 128;
+    let s = "a".repeat(string_length);
+    let haystack1 = vec![s.clone(); size];
+    let haystack2 = vec![s; size];
+    (haystack1, haystack2)
+});
+
+// Generate test data for 256-byte strings.
+static TEST_DATA_256: LazyLock<(Vec<String>, Vec<String>)> = LazyLock::new(|| {
+    let size = 1000;
+    let string_length = 256;
+    let s = "a".repeat(string_length);
+    let haystack1 = vec![s.clone(); size];
+    let haystack2 = vec![s; size];
+    (haystack1, haystack2)
+});
+
+
+static TEST_DATA_VERY_BIG: LazyLock<(Vec<String>, Vec<String>)> = LazyLock::new(|| {
+    let size = 1000;
+    let string_length = 1024;
+    let s = "a".repeat(string_length);
+    let haystack1 = vec![s.clone(); size];
+    let haystack2 = vec![s; size];
+    (haystack1, haystack2)
+});
+
 static TEST_DATA_VERY_MASSIVE: LazyLock<(Vec<String>, Vec<String>)> = LazyLock::new(|| {
     let size = 1000;
     let string_length = 4096; // chosen at random
@@ -44,71 +72,143 @@ static TEST_DATA_VERY_MASSIVE: LazyLock<(Vec<String>, Vec<String>)> = LazyLock::
 });
 
 
-pub fn criterion_benchmark_simd_vs_native_massive(c: &mut Criterion) {
-    let mut group = c.benchmark_group("SIMD vs Native (Massive Strings)");
-    group.measurement_time(Duration::from_secs(10));
+pub fn criterion_benchmark_simd_vs_native(c: &mut Criterion) {
 
     let (haystack1, haystack2) = TEST_DATA_VERY_MASSIVE.clone();
-    group.throughput(Throughput::Elements(haystack1.len() as u64));
+    benchmark_for_size(c, "SIMD 64-bit MASSIVE", &haystack1, &haystack2, compare_string_vectors);
+    benchmark_for_size(c, "SIMD 128-bit MASSIVE", &haystack1, &haystack2, compare_string_vectors);
+    benchmark_for_size(c, "SIMD 256-bit MASSIVE", &haystack1, &haystack2, compare_string_vectors);
+    benchmark_for_size(c, "Native MASSIVE", &haystack1, &haystack2, compare_string_vectors_naive);
 
-    benchmark_for_size(&mut group, "Portable SIMD 64-bit", &haystack1, &haystack2, compare_string_vectors);
-    benchmark_for_size(&mut group, "SIMD AVX2 INTRINSICS", &haystack1, &haystack2, compare_string_vectors_simd);
 
-    group.finish();
-}
+    // 16-byte strings benchmark.
+    let (data16_1, data16_2) = TEST_DATA_16.clone();
+    c.bench_function("SIMD + Rayon (16-bit)", |b| {
+        b.iter(|| {
+            let _ = compare_string_vectors(
+                black_box(data16_1.clone()),
+                black_box(data16_2.clone()),
+            );
+        })
+    });
+    c.bench_function("Native (16-bit)", |b| {
+        b.iter(|| {
+            let _ = compare_string_vectors_naive(
+                black_box(data16_1.clone()),
+                black_box(data16_2.clone()),
+            );
+        })
+    });
 
-pub fn criterion_benchmark_simd_vs_native_64(c: &mut Criterion) {
-    let mut group = c.benchmark_group("SIMD vs Native (64-byte Strings)");
-    let (haystack1, haystack2) = TEST_DATA_64.clone();
-    group.throughput(Throughput::Elements(haystack1.len() as u64));
+    // 32-byte strings benchmark.
+    let (data32_1, data32_2) = TEST_DATA_32.clone();
+    c.bench_function("SIMD + Rayon (32-bit)", |b| {
+        b.iter(|| {
+            let _ = compare_string_vectors(
+                black_box(data32_1.clone()),
+                black_box(data32_2.clone()),
+            );
+        })
+    });
+    c.bench_function("Native (32-bit)", |b| {
+        b.iter(|| {
+            let _ = compare_string_vectors_naive(
+                black_box(data32_1.clone()),
+                black_box(data32_2.clone()),
+            );
+        })
+    });
 
-    benchmark_for_size(&mut group, "Portable SIMD 64-bit", &haystack1, &haystack2, compare_string_vectors);
-    benchmark_for_size(&mut group, "SIMD AVX2 INTRINSICS", &haystack1, &haystack2, compare_string_vectors_simd);
-    benchmark_for_size(&mut group, "Native", &haystack1, &haystack2, compare_string_vectors_naive);
+    // 64-byte strings benchmark.
+    let (data64_1, data64_2) = TEST_DATA_64.clone();
+    c.bench_function("SIMD + Rayon (64-bit)", |b| {
+        b.iter(|| {
+            let _ = compare_string_vectors(
+                black_box(data64_1.clone()),
+                black_box(data64_2.clone()),
+            );
+        })
+    });
+    c.bench_function("Native (64-bit)", |b| {
+        b.iter(|| {
+            let _ = compare_string_vectors_naive(
+                black_box(data64_1.clone()),
+                black_box(data64_2.clone()),
+            );
+        })
+    });
 
-    group.finish();
-}
+    // 128-byte strings benchmark.
+    let (data128_1, data128_2) = TEST_DATA_128.clone();
+    c.bench_function("SIMD + Rayon (128-bit)", |b| {
+        b.iter(|| {
+            let _ = compare_string_vectors(
+                black_box(data128_1.clone()),
+                black_box(data128_2.clone()),
+            );
+        })
+    });
+    c.bench_function("Native (128-bit)", |b| {
+        b.iter(|| {
+            let _ = compare_string_vectors_naive(
+                black_box(data128_1.clone()),
+                black_box(data128_2.clone()),
+            );
+        })
+    });
 
-pub fn criterion_benchmark_simd_vs_native_32(c: &mut Criterion) {
-    let mut group = c.benchmark_group("SIMD vs Native (32-byte Strings)");
+    // 256-byte strings benchmark.
+    let (data256_1, data256_2) = TEST_DATA_256.clone();
+    c.bench_function("SIMD + Rayon (256-bit)", |b| {
+        b.iter(|| {
+            let _ = compare_string_vectors(
+                black_box(data256_1.clone()),
+                black_box(data256_2.clone()),
+            );
+        })
+    });
+    c.bench_function("Native (256-bit)", |b| {
+        b.iter(|| {
+            let _ = compare_string_vectors_naive(
+                black_box(data256_1.clone()),
+                black_box(data256_2.clone()),
+            );
+        })
+    });
 
-    let (haystack1, haystack2) = TEST_DATA_32.clone();
-    group.throughput(Throughput::Elements(haystack1.len() as u64));
 
-    benchmark_for_size(&mut group, "Portable SIMD 32-bit", &haystack1, &haystack2, compare_string_vectors);
-    benchmark_for_size(&mut group, "SIMD AVX2 INTRINSICS", &haystack1, &haystack2, compare_string_vectors_simd);
-    benchmark_for_size(&mut group, "Native", &haystack1, &haystack2, compare_string_vectors_naive);
+    let (haystack1, haystack2) = TEST_DATA_VERY_BIG.clone();
 
-    group.finish();
-}
+    c.bench_function("SIMD + RAYON VERY BIG", |b| {
+        b.iter(|| {
+            let _ = compare_string_vectors(black_box(haystack1.clone()), black_box(haystack2.clone()));
+        })
+    });
 
-pub fn criterion_benchmark_simd_vs_native_small(c: &mut Criterion) {
-    let mut group = c.benchmark_group("SIMD vs Native (Small Strings)");
-    let (haystack1, haystack2) = TEST_DATA_16.clone();
-    group.throughput(Throughput::Elements(haystack1.len() as u64));
+    c.bench_function("Native", |b| {
+        b.iter(|| {
+            let _ = compare_string_vectors_naive(black_box(haystack1.clone()), black_box(haystack2.clone()));
+        })
+    });
 
-    benchmark_for_size(&mut group, "Portable SIMD 16-bit", &haystack1, &haystack2, compare_string_vectors);
-    benchmark_for_size(&mut group, "SIMD AVX2 INTRINSICS", &haystack1, &haystack2, compare_string_vectors_simd);
-    benchmark_for_size(&mut group, "Native", &haystack1, &haystack2, compare_string_vectors_naive);
 
-    group.finish();
 }
 
 /// Helper function to register a benchmark for a given dataset and function.
 fn benchmark_for_size(
-    c: &mut BenchmarkGroup<WallTime>,
+    c: &mut Criterion,
     label: &str,
     haystack1: &Vec<String>,
     haystack2: &Vec<String>,
-    simd_fn: fn(&[String], &[String]) -> Vec<(usize, usize)>,
+    simd_fn: fn(Vec<String>, Vec<String>) -> Vec<(usize, usize)>,
 ) {
     c.bench_function(label, |b| {
         b.iter(|| {
-            let _ = simd_fn(black_box(haystack1), black_box(&haystack2));
+            let _ = simd_fn(black_box(haystack1.clone()), black_box(haystack2.clone()));
         })
     });
 }
 
 
-criterion_group!(benches, criterion_benchmark_simd_vs_native_massive,criterion_benchmark_simd_vs_native_64,criterion_benchmark_simd_vs_native_32,criterion_benchmark_simd_vs_native_small);
+criterion_group!(benches, criterion_benchmark_simd_vs_native);
 criterion_main!(benches);
