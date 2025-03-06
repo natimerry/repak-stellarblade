@@ -1,6 +1,4 @@
 use std::option::Option;
-use eframe::egui::CursorIcon::Default;
-use std::cell::LazyCell;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
@@ -25,8 +23,7 @@ static SKIN_ENTRIES: LazyLock<HashMap<u32, SkinEntry>> = LazyLock::new(|| {
     skin_map
 });
 static SKIN_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    let re = Regex::new(r"[0-9]{4}\/[0-9]{7}").unwrap();
-    re
+    Regex::new(r"[0-9]{4}\/[0-9]{7}").unwrap()
 });
 
 pub fn collect_files(paths: &mut Vec<PathBuf>, dir: &Path) -> io::Result<()> {
@@ -42,12 +39,12 @@ pub fn collect_files(paths: &mut Vec<PathBuf>, dir: &Path) -> io::Result<()> {
     Ok(())
 }
 
-enum ModType {
+pub enum ModType {
     Default(String),
     Custom(String),
 }
 pub fn get_character_mod_skin(file: &str) -> Option<ModType> {
-    let skin_id = SKIN_REGEX.clone().captures(&file);
+    let skin_id = SKIN_REGEX.clone().captures(file);
     if let Some(skin_id) = skin_id {
         let skin_id = skin_id[0].to_string();
         let skin_id = &skin_id[5..];
@@ -64,18 +61,18 @@ pub fn get_character_mod_skin(file: &str) -> Option<ModType> {
                 &skin.name, &skin.skin_name
             )));
         }
-        return None;
+        None
     } else {
-        return None;
+        None
     }
 }
 pub fn get_current_pak_characteristics(mod_contents: Vec<String>) -> String {
     let mut is_default: Option<String> = None;
     for file in &mod_contents {
         if let Some(stripped) = file.strip_prefix("Marvel/Content/Marvel/") {
-            let category = stripped.split('/').into_iter().next().unwrap_or_default();
+            let category = stripped.split('/').next().unwrap_or_default();
             if category == "Characters" {
-                let mod_type = get_character_mod_skin(&stripped);
+                let mod_type = get_character_mod_skin(stripped);
                 if let Some(mod_type) = mod_type {
                     match mod_type {
                         ModType::Default(default) => {

@@ -31,7 +31,6 @@ use std::sync::mpsc::{channel, Receiver};
 use std::sync::Arc;
 use std::time::Duration;
 use std::{fs, thread};
-use std::panic::PanicHookInfo;
 use crate::pak_logic::extract_pak_to_dir;
 
 // use eframe::egui::WidgetText::RichText;
@@ -108,7 +107,7 @@ impl RepakModManager {
 
         let mut game_path = PathBuf::new();
         if let Some(path) = game_install_path {
-            game_path = PathBuf::from(path).join("~mods").clean();
+            game_path = path.join("~mods").clean();
             fs::create_dir_all(&game_path).unwrap();
         }
         setup_custom_style(&cc.egui_ctx);
@@ -126,7 +125,6 @@ impl RepakModManager {
 
     fn collect_pak_files(&mut self) {
         if !self.game_path.exists() {
-            return;
         } else {
             let mut vecs = vec![];
 
@@ -172,7 +170,7 @@ impl RepakModManager {
         ui.label("Files");
         ui.separator();
         let ctx = ui.ctx();
-        self.preview_files_being_dropped(&ctx, ui.available_rect_before_wrap());
+        self.preview_files_being_dropped(ctx, ui.available_rect_before_wrap());
 
         if self.current_pak_file_idx.is_none() && ctx.input(|i| i.raw.hovered_files.is_empty()) {
             let rect = ui.available_rect_before_wrap();
@@ -201,7 +199,7 @@ impl RepakModManager {
     }
 
     fn show_pak_details(&mut self, ui: &mut egui::Ui) {
-        if let None = self.current_pak_file_idx {
+        if self.current_pak_file_idx.is_none() {
             return;
         }
         use egui::{Label, RichText};
@@ -226,7 +224,7 @@ impl RepakModManager {
         ui.collapsing("Pak details", |ui| {
             ui.horizontal(|ui| {
                 ui.add(Label::new(RichText::new("Mount Point: ").strong()));
-                ui.add(Label::new(format!("{}", pak.mount_point())));
+                ui.add(Label::new(pak.mount_point().to_string()));
             });
 
             ui.horizontal(|ui| {
@@ -245,12 +243,9 @@ impl RepakModManager {
                     .strong()
                     .size(self.default_font_size + 1.),
             ));
-            ui.add(Label::new(format!(
-                "{}",
-                get_current_pak_characteristics(full_paths.clone())
-            )));
+            ui.add(Label::new(get_current_pak_characteristics(full_paths.clone()).to_string()));
         });
-        if let None = self.table {
+        if self.table.is_none() {
             self.table = Some(FileTable::new(pak, &pak_path));
         }
     }
@@ -413,7 +408,7 @@ impl RepakModManager {
                 .unwrap();
 
                 watcher
-                    .watch(&*PathBuf::from(path), RecursiveMode::Recursive)
+                    .watch(&path, RecursiveMode::Recursive)
                     .unwrap();
 
                 // Keep the thread alive
@@ -507,7 +502,7 @@ impl RepakModManager {
                     let mod_files = rfd::FileDialog::new()
                         .set_title("Pick mods")
                         .pick_files()
-                        .unwrap_or(vec![]);
+                        .unwrap_or_default();
 
                     if mod_files.is_empty() {
                         error!("No mods found in dropped files.");
@@ -534,7 +529,7 @@ impl RepakModManager {
                     let mod_files = rfd::FileDialog::new()
                         .set_title("Pick mods")
                         .pick_folders()
-                        .unwrap_or(vec![]);
+                        .unwrap_or_default();
 
                     if mod_files.is_empty() {
                         error!("No folders picked. Please pick a folder with mods in it.");
@@ -630,7 +625,7 @@ impl eframe::App for RepakModManager {
             self.install_mod_dialog = None;
         }
 
-        if let None = self.install_mod_dialog {
+        if self.install_mod_dialog.is_none() {
             if let Some(ref receiver) = &self.receiver {
                 while let Ok(event) = receiver.try_recv() {
                     match event.kind {
@@ -693,10 +688,10 @@ impl eframe::App for RepakModManager {
         if ctx.input(|i| i.viewport().close_requested()) {
             self.save_state().unwrap();
         }
-        self.check_drop(&ctx);
+        self.check_drop(ctx);
         if let Some(ref mut install_mod) = self.install_mod_dialog {
             if self.file_drop_viewport_open {
-                install_mod.new_mod_dialog(&ctx, &mut self.file_drop_viewport_open);
+                install_mod.new_mod_dialog(ctx, &mut self.file_drop_viewport_open);
             }
         }
     }
@@ -766,7 +761,7 @@ fn main() {
         LevelFilter::Info
     };
 
-    let _ = CombinedLogger::init(vec![
+    CombinedLogger::init(vec![
         TermLogger::new(
             level_filter,
             Config::default(),
