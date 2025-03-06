@@ -31,15 +31,15 @@ fn mesh_patch(paths: &mut Vec<PathBuf>, mod_dir: &PathBuf) -> Result<(), repak::
         .filter(|p| {
             p.extension().and_then(|ext| ext.to_str()) == Some("uasset")
                 && (p.to_str().unwrap().to_lowercase().contains("meshes"))
-        })
-        .map(|p| p.clone())
+        }).cloned()
         .collect::<Vec<PathBuf>>();
 
     let patched_cache_file = mod_dir.join("patched_files");
     let file = OpenOptions::new()
         .read(true) // Allow reading
         .write(true) // Allow writing
-        .create(true) // Create the file if it doesn’t exist
+        .create(true)
+        .truncate(false)// Create the file if it doesn’t exist
         .open(&patched_cache_file)?;
 
     let patched_files = BufReader::new(&file)
@@ -86,7 +86,7 @@ fn mesh_patch(paths: &mut Vec<PathBuf>, mod_dir: &PathBuf) -> Result<(), repak::
             .expect("failed to convert to slash path");
 
         for i in &patched_files {
-            if i.as_str() == rel_uexp.to_string() || i.as_str() == rel_uasset.to_string() {
+            if i.as_str() == *rel_uexp || i.as_str() == *rel_uasset {
                 info!(
                             "Skipping {} (File has already been patched before)",
                             i.yellow()
@@ -103,7 +103,7 @@ fn mesh_patch(paths: &mut Vec<PathBuf>, mod_dir: &PathBuf) -> Result<(), repak::
             )),
         )?;
         fs::copy(
-            &uassetfile,
+            uassetfile,
             dir_path.join(format!(
                 "{}.bak",
                 uassetfile.file_name().unwrap().to_str().unwrap()
@@ -116,7 +116,7 @@ fn mesh_patch(paths: &mut Vec<PathBuf>, mod_dir: &PathBuf) -> Result<(), repak::
         fixer.read_exports(&mut rdr, &mut sizes, &mut offsets, exp_offset, exp_cnt)?;
 
         let backup_file = format!("{}.bak", uexp_file.to_str().unwrap());
-        let backup_file_size = fs::metadata(&uassetfile)?.len();
+        let backup_file_size = fs::metadata(uassetfile)?.len();
         let tmpfile = format!("{}.temp", uexp_file.to_str().unwrap());
 
         drop(rdr);
@@ -125,7 +125,7 @@ fn mesh_patch(paths: &mut Vec<PathBuf>, mod_dir: &PathBuf) -> Result<(), repak::
         let mut o = BufWriter::new(File::create(&tmpfile)?);
 
         let exp_rd =
-            fixer.read_uexp(&mut r, backup_file_size, &*backup_file, &mut o, &offsets);
+            fixer.read_uexp(&mut r, backup_file_size, &backup_file, &mut o, &offsets);
         match exp_rd {
             Ok(_) => {}
             Err(e) => match e.kind() {
@@ -159,11 +159,8 @@ fn mesh_patch(paths: &mut Vec<PathBuf>, mod_dir: &PathBuf) -> Result<(), repak::
     Ok(())
 }
 
-fn create_repak_from_pak(pak: &InstallableMod, mod_dir: PathBuf) -> Result<(), repak::Error> {
+pub fn extract_pak_to_dir(pak: &InstallableMod, install_dir: PathBuf) -> Result<(),repak::Error>{
     let pak_reader = pak.clone().reader.clone().unwrap();
-    // extract the pak first into a temporary dir
-    let temp_dir = tempdir().map_err(|e| repak::Error::Io(e))?;
-    let temp_path = temp_dir.path(); // Get the path of the temporary directory
 
     let mount_point = PathBuf::from(pak_reader.mount_point());
     let prefix = Path::new("../../../");
@@ -180,7 +177,7 @@ fn create_repak_from_pak(pak: &InstallableMod, mod_dir: PathBuf) -> Result<(), r
         .map(|entry| {
             let full_path = mount_point.join(&entry);
             let out_path =
-                temp_path
+                install_dir
                     .join(full_path.strip_prefix(prefix).map_err(|_| {
                         repak::Error::PrefixMismatch {
                             path: full_path.to_string_lossy().to_string(),
@@ -189,7 +186,7 @@ fn create_repak_from_pak(pak: &InstallableMod, mod_dir: PathBuf) -> Result<(), r
                     })?)
                     .clean();
 
-            if !out_path.starts_with(&temp_path) {
+            if !out_path.starts_with(&install_dir) {
                 return Err(repak::Error::WriteOutsideOutput(
                     out_path.to_string_lossy().to_string(),
                 ));
@@ -216,6 +213,14 @@ fn create_repak_from_pak(pak: &InstallableMod, mod_dir: PathBuf) -> Result<(), r
         log::info!("Unpacked: {:?}", entry.out_path);
 
     });
+    Ok(())
+}
+fn create_repak_from_pak(pak: &InstallableMod, mod_dir: PathBuf) -> Result<(), repak::Error> {
+    // extract the pak first into a temporary dir
+    let temp_dir = tempdir().map_err(repak::Error::Io)?;
+    let temp_path = temp_dir.path(); // Get the path of the temporary directory
+
+    extract_pak_to_dir(pak, temp_path.to_path_buf())?;
 
     repak_dir(pak, PathBuf::from(temp_path), mod_dir)?;
     Ok(())
@@ -272,8 +277,8 @@ pub fn repak_dir(pak: &InstallableMod, to_pak_dir: PathBuf,  mod_dir: PathBuf) -
 }
 
 pub fn install_mods_in_viewport(
-    mods: &mut Vec<InstallableMod>,
-    mod_directory: &PathBuf,
+    mods: &mut [InstallableMod],
+    mod_directory: &Path,
     installed_mods_ptr: &AtomicI32,
     stop_thread: &AtomicBool,
 ) {
@@ -291,12 +296,12 @@ pub fn install_mods_in_viewport(
         }
 
         if installable_mod.repak {
-            if let Err(e) = create_repak_from_pak(&installable_mod, mod_directory.clone()) {
+            if let Err(e) = create_repak_from_pak(installable_mod, PathBuf::from(mod_directory)) {
                 error!("Failed to create repak from pak: {}", e);
             }
         }
         if installable_mod.is_dir {
-            match repak_dir(installable_mod, PathBuf::from(&installable_mod.mod_path), mod_directory.clone())
+            match repak_dir(installable_mod, PathBuf::from(&installable_mod.mod_path), PathBuf::from(&mod_directory))
             {
                 Ok(_) => {
                     info!("Installed mod: {}", installable_mod.mod_name);

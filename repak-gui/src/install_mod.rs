@@ -16,8 +16,6 @@ use std::sync::atomic::{AtomicBool, AtomicI32};
 use std::sync::atomic::Ordering::SeqCst;
 use std::sync::{Arc, LazyLock};
 use std::thread;
-use std::thread::sleep;
-use std::time::Duration;
 
 #[derive(Debug, Default, Clone)]
 pub struct InstallableMod {
@@ -67,7 +65,7 @@ impl ModInstallRequest {
             .with_always_on_top();
 
         Context::show_viewport_immediate(
-            &ctx,
+            ctx,
             egui::ViewportId::from_hash_of("immediate_viewport"),
             viewport_options,
             |ctx, class| {
@@ -113,7 +111,7 @@ impl ModInstallRequest {
 
                                 if install_mod.clicked() {
                                     let mut mods =
-                                        self.mods.iter().map(|x| x.clone()).collect::<Vec<_>>(); // clone
+                                        self.mods.to_vec(); // clone
 
                                     let dir = self.mod_directory.clone();
                                     let new_atomic = self.installed_mods_cbk.clone();
@@ -125,7 +123,7 @@ impl ModInstallRequest {
                                 }
                             });
 
-                        let total_mods = self.total_mods.clone() as f32;
+                        let total_mods = self.total_mods;
                         let installed = self
                             .installed_mods_cbk
                             .load(std::sync::atomic::Ordering::SeqCst);
@@ -291,14 +289,15 @@ impl ModInstallRequest {
     }
 }
 
-pub const AES_KEY: LazyLock<AesKey> = LazyLock::new(|| {
+pub static  AES_KEY: LazyLock<AesKey> = LazyLock::new(|| {
     AesKey::from_str("0C263D8C22DCB085894899C3A3796383E9BF9DE0CBFB08C9BF2DEF2E84F29D74")
         .expect("Unable to initialise AES_KEY")
 });
 
-pub fn map_paths_to_mods(paths: &Vec<PathBuf>) -> Vec<InstallableMod> {
-    paths
-        .into_iter()
+
+pub fn map_paths_to_mods(paths: &[PathBuf]) -> Vec<InstallableMod> {
+    let installable_mods = paths
+        .iter()
         .map(|path| {
             let is_dir = path.clone().is_dir();
 
@@ -321,7 +320,7 @@ pub fn map_paths_to_mods(paths: &Vec<PathBuf>) -> Vec<InstallableMod> {
                     }
                 }
             }
-            if let None = pak {
+            if pak.is_none() {
                 assert!(is_dir);
             }
 
@@ -339,12 +338,15 @@ pub fn map_paths_to_mods(paths: &Vec<PathBuf>) -> Vec<InstallableMod> {
             })
         })
         .filter_map(|x: Result<InstallableMod, repak::Error>| x.ok())
-        .collect::<Vec<_>>()
+        .collect::<Vec<_>>();
+
+
+    installable_mods
 }
 
-pub fn map_dropped_file_to_mods(dropped_files: &Vec<egui::DroppedFile>) -> Vec<InstallableMod> {
+pub fn map_dropped_file_to_mods(dropped_files: &[egui::DroppedFile]) -> Vec<InstallableMod> {
     let files = dropped_files
-        .into_iter()
+        .iter()
         .map(|dropped_file| {
             let is_dir = dropped_file.path.clone().unwrap().is_dir();
             let mut modtype = "Unknown".to_string();
@@ -367,7 +369,7 @@ pub fn map_dropped_file_to_mods(dropped_files: &Vec<egui::DroppedFile>) -> Vec<I
                     }
                 }
             }
-            if let None = pak {
+            if pak.is_none() {
                 assert!(is_dir);
             }
 

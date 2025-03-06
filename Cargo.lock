@@ -1409,29 +1409,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "env_filter"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "186e05a59d4c50738528153b83b0b0194d3a29507dfec16eccd4b342903397d0"
-dependencies = [
- "log",
- "regex",
-]
-
-[[package]]
-name = "env_logger"
-version = "0.11.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dcaee3d8e3cfc3fd92428d477bc97fc29ec8716d180c0d74c643bb26166660e0"
-dependencies = [
- "anstream",
- "anstyle",
- "env_filter",
- "humantime",
- "log",
-]
-
-[[package]]
 name = "epaint"
 version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1904,12 +1881,6 @@ checksum = "589533453244b0995c858700322199b2becb13b627df2851f64a2775d024abcf"
 dependencies = [
  "windows-sys 0.59.0",
 ]
-
-[[package]]
-name = "humantime"
-version = "2.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
 
 [[package]]
 name = "icu_collections"
@@ -2816,7 +2787,7 @@ checksum = "945462a4b81e43c4e3ba96bd7b49d834c6f61198356aa858733bc4acf3cbe62e"
 
 [[package]]
 name = "oodle_loader"
-version = "1.2.2"
+version = "1.3.2"
 dependencies = [
  "hex",
  "libloading",
@@ -3264,6 +3235,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "regex-lite"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "53a49587ad06b26609c52e423de037e7f57f20d53535d66e08c695f347df952a"
+
+[[package]]
 name = "regex-syntax"
 version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3277,7 +3254,7 @@ checksum = "19b30a45b0cd0bcca8037f3d0dc3421eaf95327a17cad11964fb8179b4fc4832"
 
 [[package]]
 name = "repak"
-version = "1.2.2"
+version = "1.3.2"
 dependencies = [
  "aes",
  "base64 0.22.1",
@@ -3296,20 +3273,20 @@ dependencies = [
 
 [[package]]
 name = "repak-gui"
-version = "1.2.2"
+version = "1.3.2"
 dependencies = [
  "colored",
  "dirs",
  "eframe",
  "egui_extras",
  "egui_flex",
- "env_logger",
  "hex",
  "log",
  "notify",
  "path-clean",
  "path-slash",
  "rayon",
+ "regex-lite",
  "repak",
  "rfd",
  "serde",
@@ -3323,7 +3300,7 @@ dependencies = [
 
 [[package]]
 name = "repak_cli"
-version = "1.2.2"
+version = "1.3.2"
 dependencies = [
  "aes",
  "assert_cmd",
@@ -3599,7 +3576,7 @@ checksum = "d66dc143e6b11c1eddc06d5c423cfc97062865baf299914ab64caa38182078fe"
 
 [[package]]
 name = "simd_str_cmp"
-version = "1.2.2"
+version = "1.3.2"
 dependencies = [
  "criterion",
  "once_cell",
