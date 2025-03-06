@@ -709,18 +709,8 @@ const ICON: LazyCell<Arc<IconData>> = LazyCell::new(|| {
 });
 
 
-
-#[cfg(target_os = "windows")]
-#[link(name = "Kernel32")]
-extern "system" {
-    fn GetConsoleProcessList(process_list: *mut u32, count: u32) -> u32;
-    fn FreeConsole() -> i32;
-}
 #[cfg(target_os = "windows")]
 fn free_console() -> bool {
-    if !is_console() {
-        free_console();
-    }
     unsafe { FreeConsole() == 0 }
 }
 #[cfg(target_os = "windows")]
@@ -731,6 +721,14 @@ fn is_console() -> bool {
         count != 1
     }
 }
+#[cfg(target_os = "windows")]
+#[link(name="Kernel32")]
+extern "system" {
+    fn GetConsoleProcessList(processList: *mut u32, count: u32) -> u32;
+    fn FreeConsole() -> i32;
+}
+
+
 use std::panic::PanicHookInfo;
 
 #[cfg(target_os = "windows")]
@@ -751,6 +749,10 @@ fn custom_panic(_info: &PanicHookInfo) -> ! {
 }
 
 fn main() {
+    #[cfg(target_os = "windows")]
+    if !is_console() {
+        free_console();
+    }
     #[cfg(target_os = "windows")]
     #[cfg(not(debug_assertions))]
     std::panic::set_hook(Box::new(move |info| {
