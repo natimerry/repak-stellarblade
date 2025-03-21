@@ -137,7 +137,7 @@ impl RepakModManager {
                 let mut disabled = false;
 
                 if path.extension().unwrap_or_default() != "pak" {
-                    // left in option for compatibility reason
+                    // left in old file extension for compatibility reason
                     if path.extension().unwrap_or_default() == "pak_disabled"
                         || path.extension().unwrap_or_default() == "bak_repak"
                     {
@@ -407,10 +407,12 @@ impl RepakModManager {
                 })
                 .unwrap();
 
-                watcher
-                    .watch(&path, RecursiveMode::Recursive)
-                    .unwrap();
-
+                if path.exists() {
+                    watcher
+                        .watch(&path, RecursiveMode::Recursive)
+                        .unwrap();
+                }
+                
                 // Keep the thread alive
                 loop {
                     thread::sleep(Duration::from_secs(1));
@@ -728,7 +730,7 @@ extern "system" {
     fn FreeConsole() -> i32;
 }
 
-
+#[cfg(target_os = "windows")]
 use std::panic::PanicHookInfo;
 
 #[cfg(target_os = "windows")]
