@@ -255,8 +255,7 @@ impl RepakModManager {
             .show(ui, |ui| {
                 ui.vertical(|ui| {
                     for (i, pak_file) in self.pak_files.iter_mut().enumerate() {
-                        ui.horizontal(|ui| {
-                            if let Some(_idx) = self.current_pak_file_idx {}
+                        ui.horizontal(|mut ui| {
                             ui.with_layout(egui::Layout::left_to_right(Align::LEFT), |ui| {
                                 ui.set_max_width(ui.available_width() * 0.85);
                                 let pak_print = pak_file
@@ -284,6 +283,7 @@ impl RepakModManager {
                                     self.table =
                                         Some(FileTable::new(&pak_file.reader, &pak_file.path));
                                 }
+
                                 pakfile.context_menu(|ui| {
                                     if ui.button("Extract pak to directory").clicked(){
                                         self.current_pak_file_idx = Some(i);
@@ -304,6 +304,14 @@ impl RepakModManager {
                                                 error!("Failed to extract pak directory: {}",e);
                                             }
                                         }
+                                    }
+                                    if ui.button("Delete mod").clicked(){
+                                        let delete_res = fs::remove_file(&pak_file.path);
+                                        if let Err(e)  = delete_res {
+                                            error!("Failed to delete pak: {}",e);
+                                            return;
+                                        }
+                                        self.current_pak_file_idx = None;
                                     }
                                 });
                             });
