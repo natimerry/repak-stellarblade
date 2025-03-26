@@ -737,7 +737,7 @@ extern "system" {
     fn GetConsoleProcessList(processList: *mut u32, count: u32) -> u32;
     fn FreeConsole() -> i32;
 }
-
+#[allow(unused_imports)]
 #[cfg(target_os = "windows")]
 use std::panic::PanicHookInfo;
 
