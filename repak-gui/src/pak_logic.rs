@@ -208,25 +208,22 @@ pub fn extract_pak_to_dir(pak: &InstallableMod, install_dir: PathBuf) -> Result<
         fs::create_dir_all(&entry.out_dir).unwrap();
         let mut reader = BufReader::new(File::open(&pak.mod_path).unwrap());
         let buffer = pak_reader.get(&entry.entry_path, &mut reader).expect("Failed to read entry");
-
         File::create(&entry.out_path).unwrap().write_all(&buffer).unwrap();
         log::info!("Unpacked: {:?}", entry.out_path);
-
     });
     Ok(())
 }
-fn create_repak_from_pak(pak: &InstallableMod, mod_dir: PathBuf) -> Result<(), repak::Error> {
+fn create_repak_from_pak(pak: &InstallableMod, mod_dir: PathBuf, packed_files_count: &AtomicI32) -> Result<(), repak::Error> {
     // extract the pak first into a temporary dir
     let temp_dir = tempdir().map_err(repak::Error::Io)?;
     let temp_path = temp_dir.path(); // Get the path of the temporary directory
 
     extract_pak_to_dir(pak, temp_path.to_path_buf())?;
-
-    repak_dir(pak, PathBuf::from(temp_path), mod_dir)?;
+    repak_dir(pak, PathBuf::from(temp_path), mod_dir,packed_files_count)?;
     Ok(())
 }
 
-pub fn repak_dir(pak: &InstallableMod, to_pak_dir: PathBuf,  mod_dir: PathBuf) -> Result<(), repak::Error> {
+pub fn repak_dir(pak: &InstallableMod, to_pak_dir: PathBuf,  mod_dir: PathBuf,installed_mods_ptr: &AtomicI32) -> Result<(), repak::Error> {
     let mut pak_name = pak.mod_name.clone();
     pak_name.push_str(".pak");
     let output_file = File::create(mod_dir.join(pak_name))?;
@@ -269,6 +266,7 @@ pub fn repak_dir(pak: &InstallableMod, to_pak_dir: PathBuf,  mod_dir: PathBuf) -
     for (path, entry) in partial_entry {
         debug!("Writing: {}", path);
         pak_writer.write_entry(path, entry)?;
+        installed_mods_ptr.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
     }
     pak_writer.write_index()?;
 
@@ -293,15 +291,16 @@ pub fn install_mods_in_viewport(
             // just move files to the correct location
             info!("Installing mod: {}", installable_mod.mod_name);
             std::fs::copy(&installable_mod.mod_path, mod_directory.join(format!("{}.pak",&installable_mod.mod_name))).unwrap();
+            installed_mods_ptr.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         }
 
         if installable_mod.repak {
-            if let Err(e) = create_repak_from_pak(installable_mod, PathBuf::from(mod_directory)) {
+            if let Err(e) = create_repak_from_pak(installable_mod, PathBuf::from(mod_directory),installed_mods_ptr) {
                 error!("Failed to create repak from pak: {}", e);
             }
         }
         if installable_mod.is_dir {
-            match repak_dir(installable_mod, PathBuf::from(&installable_mod.mod_path), PathBuf::from(&mod_directory))
+            match repak_dir(installable_mod, PathBuf::from(&installable_mod.mod_path), PathBuf::from(&mod_directory),installed_mods_ptr)
             {
                 Ok(_) => {
                     info!("Installed mod: {}", installable_mod.mod_name);
@@ -312,8 +311,7 @@ pub fn install_mods_in_viewport(
             }
         }
 
-        // set i32 to -255 magic value to indicate mod installation is done
-        AtomicI32::fetch_add(installed_mods_ptr, 1,Ordering::SeqCst);
     }
+    // set i32 to -255 magic value to indicate mod installation is done
     AtomicI32::store(installed_mods_ptr, -255,Ordering::SeqCst);
 }

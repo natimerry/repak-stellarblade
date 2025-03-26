@@ -255,7 +255,7 @@ impl RepakModManager {
             .show(ui, |ui| {
                 ui.vertical(|ui| {
                     for (i, pak_file) in self.pak_files.iter_mut().enumerate() {
-                        ui.horizontal(|mut ui| {
+                        ui.horizontal(|ui| {
                             ui.with_layout(egui::Layout::left_to_right(Align::LEFT), |ui| {
                                 ui.set_max_width(ui.available_width() * 0.85);
                                 let pak_print = pak_file

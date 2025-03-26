@@ -10,12 +10,12 @@ use repak::utils::AesKey;
 use repak::{Compression, PakReader};
 use std::fs::File;
 use std::io::BufReader;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::atomic::{AtomicBool, AtomicI32};
 use std::sync::atomic::Ordering::SeqCst;
 use std::sync::{Arc, LazyLock};
-use std::thread;
+use std::{fs, thread};
 
 #[derive(Debug, Default, Clone)]
 pub struct InstallableMod {
@@ -30,6 +30,7 @@ pub struct InstallableMod {
     pub compression: Compression,
     pub reader: Option<PakReader>,
     pub mod_path: PathBuf,
+    pub total_files: usize,
 }
 
 #[derive(Debug)]
@@ -44,7 +45,7 @@ pub struct ModInstallRequest {
 }
 impl ModInstallRequest {
     pub fn new(mods: Vec<InstallableMod>, mod_directory: PathBuf) -> Self {
-        let len = mods.len();
+        let len = mods.iter().map(|m| m.total_files).sum::<usize>();
         Self {
             animate: false,
             mods,
@@ -56,6 +57,7 @@ impl ModInstallRequest {
         }
     }
 }
+
 impl ModInstallRequest {
     pub fn new_mod_dialog(&mut self, ctx: &egui::Context, show_callback: &mut bool) {
         let viewport_options = egui::ViewportBuilder::default()
@@ -294,6 +296,21 @@ pub static  AES_KEY: LazyLock<AesKey> = LazyLock::new(|| {
         .expect("Unable to initialise AES_KEY")
 });
 
+fn count_files_recursive(path: &Path) -> usize {
+    let mut count = 0;
+    if let Ok(entries) = fs::read_dir(path) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file() {
+                count += 1;
+            } else if path.is_dir() {
+                count += count_files_recursive(&path);
+            }
+        }
+    }
+    count
+}
+
 
 pub fn map_paths_to_mods(paths: &[PathBuf]) -> Vec<InstallableMod> {
     let installable_mods = paths
@@ -304,6 +321,7 @@ pub fn map_paths_to_mods(paths: &[PathBuf]) -> Vec<InstallableMod> {
             let mut modtype = "Unknown".to_string();
             let mut pak = None;
 
+            let mut len = 1;
             if !is_dir {
                 let builder = repak::PakBuilder::new()
                     .key(AES_KEY.clone().0)
@@ -311,6 +329,7 @@ pub fn map_paths_to_mods(paths: &[PathBuf]) -> Vec<InstallableMod> {
 
                 match builder {
                     Ok(builder) => {
+                        len = builder.files().iter().len();
                         pak = Some(builder.clone());
                         modtype = get_current_pak_characteristics(builder.files());
                     }
@@ -320,10 +339,15 @@ pub fn map_paths_to_mods(paths: &[PathBuf]) -> Vec<InstallableMod> {
                     }
                 }
             }
+
+
             if pak.is_none() {
                 assert!(is_dir);
             }
 
+            if is_dir{
+                len = count_files_recursive(path);
+            }
             Ok(InstallableMod {
                 mod_name: path.file_stem().unwrap().to_str().unwrap().to_string(),
                 mod_type: modtype,
@@ -334,6 +358,7 @@ pub fn map_paths_to_mods(paths: &[PathBuf]) -> Vec<InstallableMod> {
                 mod_path: path.clone(),
                 mount_point: "../../../".to_string(),
                 path_hash_seed: "00000000".to_string(),
+                total_files: len,
                 ..Default::default()
             })
         })
@@ -349,10 +374,11 @@ pub fn map_dropped_file_to_mods(dropped_files: &[egui::DroppedFile]) -> Vec<Inst
         .iter()
         .map(|dropped_file| {
             let is_dir = dropped_file.path.clone().unwrap().is_dir();
+            let path = dropped_file.path.clone().unwrap();
             let mut modtype = "Unknown".to_string();
 
             let mut pak = None;
-
+            let mut len = 1;
             let pakfile = dropped_file.path.clone().unwrap();
             if !is_dir {
                 let builder = repak::PakBuilder::new()
@@ -360,6 +386,7 @@ pub fn map_dropped_file_to_mods(dropped_files: &[egui::DroppedFile]) -> Vec<Inst
                     .reader(&mut BufReader::new(File::open(pakfile.clone()).unwrap()));
                 match builder {
                     Ok(builder) => {
+                        len = builder.files().iter().len();
                         pak = Some(builder.clone());
                         modtype = get_current_pak_characteristics(builder.files());
                     }
@@ -372,7 +399,9 @@ pub fn map_dropped_file_to_mods(dropped_files: &[egui::DroppedFile]) -> Vec<Inst
             if pak.is_none() {
                 assert!(is_dir);
             }
-
+            if is_dir{
+                len = count_files_recursive(&path);
+            }
             Ok(InstallableMod {
                 mod_name: pakfile.file_stem().unwrap().to_str().unwrap().to_string(),
                 mod_type: modtype,
@@ -383,6 +412,7 @@ pub fn map_dropped_file_to_mods(dropped_files: &[egui::DroppedFile]) -> Vec<Inst
                 mod_path: pakfile.clone(),
                 mount_point: "../../../".to_string(),
                 path_hash_seed: "00000000".to_string(),
+                total_files: len,
                 ..Default::default()
             })
         })
