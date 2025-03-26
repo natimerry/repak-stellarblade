@@ -1,6 +1,6 @@
 # Changelog
 
 ## Repak GUI
-- Add right click to extract for pak files shown in the right pane of the main menu
-- Show skin names for character mods
+- Add right click delete to repak file explorer sidebar
+- Add smoother install progress
 - Minor bug fixes
