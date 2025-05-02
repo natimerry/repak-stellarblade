@@ -1,3 +1,6 @@
 [submodule "uasset-mesh-patch-rivals"]
 	path = uasset-mesh-patch-rivals
 	url = https://github.com/natimerry/uasset-mesh-patch-rivals
+[submodule "retoc-rivals"]
+	path = retoc-rivals
+	url = https://github.com/natimerry/retoc-rivals
