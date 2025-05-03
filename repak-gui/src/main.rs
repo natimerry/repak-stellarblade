@@ -6,6 +6,7 @@ mod pak_logic;
 mod utils;
 
 pub mod ios_widget;
+mod archive_mods;
 
 use crate::file_table::FileTable;
 use crate::install_mod::{map_dropped_file_to_mods, map_paths_to_mods, InstallableMod, ModInstallRequest, AES_KEY};
@@ -474,7 +475,7 @@ impl RepakModManager {
                 // Check if all files are either directories or have the .pak extension
                 let all_valid = dropped_files.iter().all(|file| {
                     let path = file.path.clone().unwrap();
-                    path.is_dir() || path.extension().map(|ext| ext == "pak").unwrap_or(false)
+                    path.is_dir() || path.extension().map(|ext| ext == "pak" || ext == "zip" || ext == "rar").unwrap_or(false)
                 });
 
                 if all_valid {

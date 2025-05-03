@@ -16,6 +16,7 @@ use std::sync::atomic::{AtomicBool, AtomicI32};
 use std::sync::atomic::Ordering::SeqCst;
 use std::sync::{Arc, LazyLock};
 use std::{fs, thread};
+use crate::archive_mods::{rar_length, zip_length};
 
 #[derive(Debug, Default, Clone)]
 pub struct InstallableMod {
@@ -32,6 +33,7 @@ pub struct InstallableMod {
     pub mod_path: PathBuf,
     pub total_files: usize,
     pub audio_mod: bool,
+    pub is_archive: bool,
 }
 
 #[derive(Debug)]
@@ -325,11 +327,14 @@ pub fn map_paths_to_mods(paths: &[PathBuf]) -> Vec<InstallableMod> {
         .map(|path| {
             let is_dir = path.clone().is_dir();
 
+            let extension = path.extension().unwrap_or_default();
+            let is_archive = extension == "zip" || extension == "rar";
+
             let mut modtype = "Unknown".to_string();
             let mut pak = None;
 
             let mut len = 1;
-            if !is_dir {
+            if !is_dir && !is_archive{
                 let builder = repak::PakBuilder::new()
                     .key(AES_KEY.clone().0)
                     .reader(&mut BufReader::new(File::open(path.clone()).unwrap()));
@@ -348,12 +353,35 @@ pub fn map_paths_to_mods(paths: &[PathBuf]) -> Vec<InstallableMod> {
             }
 
 
-            if pak.is_none() {
-                assert!(is_dir);
-            }
-
             if is_dir{
                 len = count_files_recursive(path);
+            }
+
+            if is_archive{
+                let len = {
+                    let mut len = 0;
+                    if extension == "zip"{
+                        len = zip_length(path.to_str().unwrap()).unwrap()
+                    }
+                    else if extension == "rar" {
+                        len = rar_length(path.to_str().unwrap()).unwrap()
+                    }
+                    len
+                };
+            }
+
+            let mut len = 0;
+            if is_archive{
+                let xlen = {
+                    if extension == "zip"{
+                        len = zip_length(path.to_str().unwrap()).unwrap()
+                    }
+                    else if extension == "rar" {
+                        len = rar_length(path.to_str().unwrap()).unwrap()
+                    }
+                    len
+                };
+                len = xlen;
             }
             Ok(InstallableMod {
                 mod_name: path.file_stem().unwrap().to_str().unwrap().to_string(),
@@ -366,6 +394,7 @@ pub fn map_paths_to_mods(paths: &[PathBuf]) -> Vec<InstallableMod> {
                 mount_point: "../../../".to_string(),
                 path_hash_seed: "00000000".to_string(),
                 total_files: len,
+                is_archive,
                 ..Default::default()
             })
         })
@@ -381,14 +410,23 @@ pub fn map_dropped_file_to_mods(dropped_files: &[egui::DroppedFile]) -> Vec<Inst
     let files = dropped_files
         .iter()
         .map(|dropped_file| {
-            let is_dir = dropped_file.path.clone().unwrap().is_dir();
             let path = dropped_file.path.clone().unwrap();
-            let mut modtype = "Unknown".to_string();
 
+            let is_dir = path.clone().is_dir();
+
+            let extension = path.extension().unwrap_or_default();
+            let is_archive = extension == "zip" || extension == "rar";
+
+            let mut modtype = "Unknown".to_string();
             let mut pak = None;
+
             let mut len = 1;
-            let pakfile = dropped_file.path.clone().unwrap();
-            if !is_dir {
+            let pakfile = path.clone();
+
+            let extension = path.extension().unwrap_or_default();
+            let is_archive = extension == "zip" || extension == "rar";
+
+            if !is_dir && !is_archive{
                 let builder = repak::PakBuilder::new()
                     .key(AES_KEY.clone().0)
                     .reader(&mut BufReader::new(File::open(pakfile.clone()).unwrap()));
@@ -404,12 +442,24 @@ pub fn map_dropped_file_to_mods(dropped_files: &[egui::DroppedFile]) -> Vec<Inst
                     }
                 }
             }
-            if pak.is_none() {
-                assert!(is_dir);
-            }
+
             if is_dir{
                 len = count_files_recursive(&path);
             }
+
+            if is_archive{
+                let xlen = {
+                    if extension == "zip"{
+                        len = zip_length(path.to_str().unwrap()).unwrap()
+                    }
+                    else if extension == "rar" {
+                        len = rar_length(path.to_str().unwrap()).unwrap()
+                    }
+                    len
+                };
+                len = xlen;
+            }
+
             Ok(InstallableMod {
                 mod_name: pakfile.file_stem().unwrap().to_str().unwrap().to_string(),
                 mod_type: modtype,
@@ -421,6 +471,7 @@ pub fn map_dropped_file_to_mods(dropped_files: &[egui::DroppedFile]) -> Vec<Inst
                 mount_point: "../../../".to_string(),
                 path_hash_seed: "00000000".to_string(),
                 total_files: len,
+                is_archive,
                 ..Default::default()
             })
         })

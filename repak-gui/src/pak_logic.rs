@@ -16,6 +16,7 @@ use std::str::FromStr;
 use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 use std::sync::Arc;
 use tempfile::tempdir;
+use walkdir::WalkDir;
 use uasset_mesh_patch_rivals::{Logger, PatchFixer};
 
 struct PrintLogger;
@@ -222,6 +223,7 @@ pub fn extract_pak_to_dir(pak: &InstallableMod, install_dir: PathBuf) -> Result<
 }
 
 use retoc::*;
+use crate::archive_mods::{extract_rar, extract_zip};
 
 fn convert_to_iostore_directory(
     pak: &InstallableMod,
@@ -413,6 +415,40 @@ pub fn install_mods_in_viewport(
             warn!("Stopping thread");
             break;
         }
+
+        if installable_mod.is_archive{
+            let tempdir = tempdir().unwrap();
+            if installable_mod.mod_path.to_str().unwrap().ends_with(".zip") {
+                extract_zip(installable_mod.mod_path.to_str().unwrap(), tempdir.path().to_str().unwrap()).expect("Unable to extract zip file");
+            }
+            else if installable_mod.mod_path.to_str().unwrap().ends_with(".rar"){
+                extract_rar(installable_mod.mod_path.to_str().unwrap(), tempdir.path().to_str().unwrap()).expect("Unable to extract rar file");
+            }
+            // now walkdir and collect all files inside it, if the name ends with utoc, ucas or pok copy it to game directory
+            for entry in WalkDir::new(tempdir.path()) {
+                let entry = entry.expect("Failed to read directory entry");
+                let path = entry.path();
+
+                if path.is_file() {
+                    if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
+                        if ext.eq_ignore_ascii_case("utoc")
+                            || ext.eq_ignore_ascii_case("ucas")
+                            || ext.eq_ignore_ascii_case("pak")
+                        {
+                            let dest_path = Path::new(&PathBuf::from(&mod_directory))
+                                .join(path.file_name().unwrap());
+
+                            fs::copy(path, dest_path)
+                                .expect("Failed to copy mod file");
+                            installed_mods_ptr.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                        }
+                    }
+                }
+
+            }
+            continue;
+        }
+
         if !installable_mod.repak && !installable_mod.is_dir {
             // just move files to the correct location
             info!("Installing mod: {}", installable_mod.mod_name);
@@ -445,6 +481,8 @@ pub fn install_mods_in_viewport(
                 }
             }
         }
+
+
     }
     // set i32 to -255 magic value to indicate mod installation is done
     AtomicI32::store(installed_mods_ptr, -255, Ordering::SeqCst);
