@@ -274,8 +274,6 @@ fn convert_to_iostore_directory(
 
     let output_file = File::create(mod_dir.join(pak_name))?;
 
-
-
     let rel_paths = paths
         .par_iter()
         .map(|p| {
