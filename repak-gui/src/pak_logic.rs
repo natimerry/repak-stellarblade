@@ -259,6 +259,7 @@ fn convert_to_iostore_directory(
 
     if pak.audio_mod{
         repak_dir(pak, to_pak_dir.clone(), mod_dir.clone(),packed_files_count)?; // if its an audio mod we need the full pak
+        return Ok(());
     }
 
     let output_file = File::create(mod_dir.join(pak_name))?;
