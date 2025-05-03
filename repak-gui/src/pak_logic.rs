@@ -39,6 +39,7 @@ fn mesh_patch(paths: &mut Vec<PathBuf>, mod_dir: &PathBuf) -> Result<(), repak::
         .collect::<Vec<PathBuf>>();
 
     let patched_cache_file = mod_dir.join("patched_files");
+    info!("Patching files...");
     let file = OpenOptions::new()
         .read(true) // Allow reading
         .write(true) // Allow writing
@@ -471,7 +472,7 @@ pub fn install_mods_in_viewport(
         }
 
         if installable_mod.is_dir {
-            match convert_to_iostore_directory(installable_mod, PathBuf::from(&installable_mod.mod_path), PathBuf::from(&mod_directory),installed_mods_ptr)
+            match convert_to_iostore_directory(installable_mod, PathBuf::from(&mod_directory), PathBuf::from(&installable_mod.mod_path) ,installed_mods_ptr)
             {
                 Ok(_) => {
                     info!("Installed mod: {}", installable_mod.mod_name);
