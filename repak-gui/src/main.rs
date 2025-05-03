@@ -172,6 +172,7 @@ impl RepakModManager {
         let ctx = ui.ctx();
         self.preview_files_being_dropped(ctx, ui.available_rect_before_wrap());
 
+        // if files are being dropped
         if self.current_pak_file_idx.is_none() && ctx.input(|i| i.raw.hovered_files.is_empty()) {
             let rect = ui.available_rect_before_wrap();
             let painter =
@@ -316,6 +317,7 @@ impl RepakModManager {
                                 });
                             });
 
+                            // I think we can keep utoc and ucas uncommented as they are only loaded if a valid pak file is present
                             ui.with_layout(egui::Layout::right_to_left(Align::RIGHT), |ui| {
                                 let toggler = ui.add(ios_widget::toggle(&mut pak_file.enabled));
                                 if toggler.clicked() {
@@ -768,6 +770,13 @@ fn main() {
     std::panic::set_hook(Box::new(move |info| {
         custom_panic(info.into());
     }));
+
+    unsafe {
+        #[cfg(target_os = "linux")]
+        std::env::set_var("WINIT_UNIX_BACKEND", "x11");
+        std::env::remove_var("WAYLAND_DISPLAY");
+    }
+
 
     let log_file = File::create("latest.log").expect("Failed to create log file");
     let level_filter = if cfg!(debug_assertions) {

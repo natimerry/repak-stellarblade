@@ -2,6 +2,7 @@ use eframe::egui;
 use eframe::egui::OutputCommand::CopyText;
 use eframe::egui::RichText;
 use egui_extras::{Column, TableBuilder};
+use log::warn;
 use repak::PakReader;
 use rfd::FileDialog;
 use sha2::Digest;
@@ -43,15 +44,38 @@ impl Default for FileTable {
 
 impl FileTable {
     pub fn new(pak_reader: &PakReader, pak_path: &Path) -> Self {
-        let entries = pak_reader
-            .files().to_vec();
+        let binding = pak_reader.files();
+        let string_bind = String::from("");
+        let entry = binding.first().unwrap_or(&string_bind);
 
-        let file_entries = entries
+        if entry != "chunknames" {
+            warn!("Expected chunknames to be first entry, got {}", entry);
+            warn!("This is probably a bug in the mod");
+            warn!("Please report this to the mod author");
+            warn!("This will not affect the mod in any way");
+            warn!("The mod will still work, but the file table will be empty");
+
+            return Self {
+                file_contents: vec![],
+                ..Default::default()
+            };
+        }
+
+        let entry_pak = pak_reader.get_file_entry(entry).unwrap();
+
+        let mut reader = BufReader::new(File::open(&pak_path).expect("Failed to open pak file"));
+
+        let buffer = pak_reader
+            .get(entry.as_str(), &mut reader)
+            .expect("Failed to read file");
+        let content = String::from_utf8(buffer).expect("Invalid UTF-8 in file");
+        let lines: Vec<String> = content.lines().map(|line| line.to_string()).collect();
+
+        let file_entries = lines
             .iter()
-            .map(|entry| {
-                let entry_pak = pak_reader.get_file_entry(entry).unwrap();
+            .map(|line| {
                 FileEntry {
-                    file_path: entry.clone(),
+                    file_path: line.clone(),
                     pak_path: PathBuf::from(pak_path),
                     pak_reader: pak_reader.clone(),
                     // entry: pak_reader.get_file_entry(entry).unwrap(),
@@ -61,12 +85,12 @@ impl FileTable {
                 }
             })
             .collect::<Vec<_>>();
+
         Self {
             file_contents: file_entries,
             ..Default::default()
         }
     }
-
 
     pub fn table_ui(&mut self, ui: &mut egui::Ui) {
         let available_height = ui.available_height();
@@ -110,9 +134,8 @@ impl FileTable {
             })
             .body(|body| {
                 // let mut file = self.file_contents.clone();
-                body.rows(20.0, self.file_contents.len(),|mut row| {
+                body.rows(20.0, self.file_contents.len(), |mut row| {
                     let row_idx = row.index();
-
 
                     let entry = &mut self.file_contents[row_idx];
                     row.set_selected(self.selection == row_idx);

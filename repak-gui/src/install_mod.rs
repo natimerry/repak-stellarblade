@@ -369,6 +369,7 @@ pub fn map_paths_to_mods(paths: &[PathBuf]) -> Vec<InstallableMod> {
     installable_mods
 }
 
+//TODO: support zip files
 pub fn map_dropped_file_to_mods(dropped_files: &[egui::DroppedFile]) -> Vec<InstallableMod> {
     let files = dropped_files
         .iter()

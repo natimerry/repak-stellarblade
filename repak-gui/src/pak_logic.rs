@@ -6,12 +6,15 @@ use path_clean::PathClean;
 use path_slash::PathExt;
 use rayon::iter::IntoParallelRefIterator;
 use rayon::iter::ParallelIterator;
+use repak::utils::AesKey;
 use repak::Version;
 use std::fs;
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, BufWriter, ErrorKind, Write};
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
+use std::sync::Arc;
 use tempfile::tempdir;
 use uasset_mesh_patch_rivals::{Logger, PatchFixer};
 
@@ -24,14 +27,14 @@ impl Logger for PrintLogger {
     }
 }
 
-
-fn mesh_patch(paths: &mut Vec<PathBuf>, mod_dir: &PathBuf) -> Result<(), repak::Error>{
+fn mesh_patch(paths: &mut Vec<PathBuf>, mod_dir: &PathBuf) -> Result<(), repak::Error> {
     let uasset_files = paths
         .iter()
         .filter(|p| {
             p.extension().and_then(|ext| ext.to_str()) == Some("uasset")
                 && (p.to_str().unwrap().to_lowercase().contains("meshes"))
-        }).cloned()
+        })
+        .cloned()
         .collect::<Vec<PathBuf>>();
 
     let patched_cache_file = mod_dir.join("patched_files");
@@ -39,7 +42,7 @@ fn mesh_patch(paths: &mut Vec<PathBuf>, mod_dir: &PathBuf) -> Result<(), repak::
         .read(true) // Allow reading
         .write(true) // Allow writing
         .create(true)
-        .truncate(false)// Create the file if it doesn’t exist
+        .truncate(false) // Create the file if it doesn’t exist
         .open(&patched_cache_file)?;
 
     let patched_files = BufReader::new(&file)
@@ -88,9 +91,9 @@ fn mesh_patch(paths: &mut Vec<PathBuf>, mod_dir: &PathBuf) -> Result<(), repak::
         for i in &patched_files {
             if i.as_str() == *rel_uexp || i.as_str() == *rel_uasset {
                 info!(
-                            "Skipping {} (File has already been patched before)",
-                            i.yellow()
-                        );
+                    "Skipping {} (File has already been patched before)",
+                    i.yellow()
+                );
                 continue 'outer;
             }
         }
@@ -124,8 +127,7 @@ fn mesh_patch(paths: &mut Vec<PathBuf>, mod_dir: &PathBuf) -> Result<(), repak::
         let mut r = BufReader::new(File::open(&backup_file)?);
         let mut o = BufWriter::new(File::create(&tmpfile)?);
 
-        let exp_rd =
-            fixer.read_uexp(&mut r, backup_file_size, &backup_file, &mut o, &offsets);
+        let exp_rd = fixer.read_uexp(&mut r, backup_file_size, &backup_file, &mut o, &offsets);
         match exp_rd {
             Ok(_) => {}
             Err(e) => match e.kind() {
@@ -159,7 +161,7 @@ fn mesh_patch(paths: &mut Vec<PathBuf>, mod_dir: &PathBuf) -> Result<(), repak::
     Ok(())
 }
 
-pub fn extract_pak_to_dir(pak: &InstallableMod, install_dir: PathBuf) -> Result<(),repak::Error>{
+pub fn extract_pak_to_dir(pak: &InstallableMod, install_dir: PathBuf) -> Result<(), repak::Error> {
     let pak_reader = pak.clone().reader.clone().unwrap();
 
     let mount_point = PathBuf::from(pak_reader.mount_point());
@@ -207,23 +209,125 @@ pub fn extract_pak_to_dir(pak: &InstallableMod, install_dir: PathBuf) -> Result<
         log::debug!("Unpacking: {}", entry.entry_path);
         fs::create_dir_all(&entry.out_dir).unwrap();
         let mut reader = BufReader::new(File::open(&pak.mod_path).unwrap());
-        let buffer = pak_reader.get(&entry.entry_path, &mut reader).expect("Failed to read entry");
-        File::create(&entry.out_path).unwrap().write_all(&buffer).unwrap();
+        let buffer = pak_reader
+            .get(&entry.entry_path, &mut reader)
+            .expect("Failed to read entry");
+        File::create(&entry.out_path)
+            .unwrap()
+            .write_all(&buffer)
+            .unwrap();
         log::info!("Unpacked: {:?}", entry.out_path);
     });
     Ok(())
 }
-fn create_repak_from_pak(pak: &InstallableMod, mod_dir: PathBuf, packed_files_count: &AtomicI32) -> Result<(), repak::Error> {
+
+use retoc::*;
+
+fn convert_to_iostore_directory(
+    pak: &InstallableMod,
+    mod_dir: PathBuf,
+    to_pak_dir: PathBuf,
+    packed_files_count: &AtomicI32,
+) -> Result<(), repak::Error> {
+    let mut pak_name = pak.mod_name.clone();
+    pak_name.push_str(".pak");
+
+    let mut utoc_name = pak.mod_name.clone();
+    utoc_name.push_str(".utoc");
+
+    let action = ActionToZen::new(
+        to_pak_dir.clone(),
+        mod_dir.join(utoc_name),
+        EngineVersion::UE5_3,
+    );
+    let mut config = Config {
+        container_header_version_override: None,
+        ..Default::default()
+    };
+
+    let aes_toc =
+        retoc::AesKey::from_str("0C263D8C22DCB085894899C3A3796383E9BF9DE0CBFB08C9BF2DEF2E84F29D74")
+            .unwrap();
+
+    config.aes_keys.insert(FGuid::default(), aes_toc.clone());
+    let config = Arc::new(config);
+
+    action_to_zen(action, config).expect("Failed to convert to zen");
+
+    // NOW WE CREATE THE FAKE PAK FILE WITH THE CONTENTS BEING A TEXT FILE LISTING ALL CHUNKNAMES
+    let output_file = File::create(mod_dir.join(pak_name))?;
+
+    let mut paths = vec![];
+    collect_files(&mut paths, &to_pak_dir)?;
+
+    let rel_paths = paths
+        .par_iter()
+        .map(|p| {
+            let rel = &p
+                .strip_prefix(to_pak_dir.clone())
+                .expect("file not in input directory")
+                .to_slash()
+                .expect("failed to convert to slash path");
+            rel.to_string()
+        })
+        .collect::<Vec<_>>();
+
+
+    let builder = repak::PakBuilder::new()
+        .compression(vec![pak.compression])
+        .key(AES_KEY.clone().0);
+
+    let mut pak_writer = builder.writer(
+        BufWriter::new(output_file),
+        Version::V11,
+        pak.mount_point.clone(),
+        Some(pak.path_hash_seed.parse().unwrap()),
+    );
+    let entry_builder = pak_writer.entry_builder();
+
+    let rel_paths_bytes: Vec<u8> = rel_paths.join("\n").into_bytes();
+    let entry = entry_builder
+        .build_entry(true, rel_paths_bytes, "chunknames")
+        .expect("Failed to build entry");
+
+
+    pak_writer.write_entry("chunknames".to_string(), entry)?;
+    pak_writer.write_index()?;
+
+    log::info!("Wrote pak file successfully");
+    packed_files_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    Ok(())
+
+    // now generate the fake pak file
+}
+
+fn create_repak_from_pak(
+    pak: &InstallableMod,
+    mod_dir: PathBuf,
+    packed_files_count: &AtomicI32,
+) -> Result<(), repak::Error> {
     // extract the pak first into a temporary dir
     let temp_dir = tempdir().map_err(repak::Error::Io)?;
     let temp_path = temp_dir.path(); // Get the path of the temporary directory
 
     extract_pak_to_dir(pak, temp_path.to_path_buf())?;
-    repak_dir(pak, PathBuf::from(temp_path), mod_dir,packed_files_count)?;
+    convert_to_iostore_directory(
+        pak,
+        mod_dir.clone(),
+        temp_path.to_path_buf(),
+        packed_files_count,
+    )?;
+    // repak_dir(pak, PathBuf::from(temp_path), mod_dir,packed_files_count)?;
     Ok(())
 }
 
-pub fn repak_dir(pak: &InstallableMod, to_pak_dir: PathBuf,  mod_dir: PathBuf,installed_mods_ptr: &AtomicI32) -> Result<(), repak::Error> {
+// leaving this here for legacy reasons
+pub fn repak_dir(
+    pak: &InstallableMod,
+    to_pak_dir: PathBuf,
+    mod_dir: PathBuf,
+    installed_mods_ptr: &AtomicI32,
+) -> Result<(), repak::Error> {
     let mut pak_name = pak.mod_name.clone();
     pak_name.push_str(".pak");
     let output_file = File::create(mod_dir.join(pak_name))?;
@@ -260,7 +364,7 @@ pub fn repak_dir(pak: &InstallableMod, to_pak_dir: PathBuf,  mod_dir: PathBuf,in
             let entry = entry_builder
                 .build_entry(true, std::fs::read(p).expect("WTF"), rel)
                 .expect("Failed to build entry");
-            (rel.to_string(),entry)
+            (rel.to_string(), entry)
         })
         .collect::<Vec<_>>();
     for (path, entry) in partial_entry {
@@ -280,9 +384,7 @@ pub fn install_mods_in_viewport(
     installed_mods_ptr: &AtomicI32,
     stop_thread: &AtomicBool,
 ) {
-
     for installable_mod in mods.iter_mut() {
-
         if stop_thread.load(Ordering::SeqCst) {
             warn!("Stopping thread");
             break;
@@ -290,17 +392,26 @@ pub fn install_mods_in_viewport(
         if !installable_mod.repak && !installable_mod.is_dir {
             // just move files to the correct location
             info!("Installing mod: {}", installable_mod.mod_name);
-            std::fs::copy(&installable_mod.mod_path, mod_directory.join(format!("{}.pak",&installable_mod.mod_name))).unwrap();
+            std::fs::copy(
+                &installable_mod.mod_path,
+                mod_directory.join(format!("{}.pak", &installable_mod.mod_name)),
+            )
+            .unwrap();
             installed_mods_ptr.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         }
 
         if installable_mod.repak {
-            if let Err(e) = create_repak_from_pak(installable_mod, PathBuf::from(mod_directory),installed_mods_ptr) {
+            if let Err(e) = create_repak_from_pak(
+                installable_mod,
+                PathBuf::from(mod_directory),
+                installed_mods_ptr,
+            ) {
                 error!("Failed to create repak from pak: {}", e);
             }
         }
+
         if installable_mod.is_dir {
-            match repak_dir(installable_mod, PathBuf::from(&installable_mod.mod_path), PathBuf::from(&mod_directory),installed_mods_ptr)
+            match convert_to_iostore_directory(installable_mod, PathBuf::from(&installable_mod.mod_path), PathBuf::from(&mod_directory),installed_mods_ptr)
             {
                 Ok(_) => {
                     info!("Installed mod: {}", installable_mod.mod_name);
@@ -310,8 +421,7 @@ pub fn install_mods_in_viewport(
                 }
             }
         }
-
     }
     // set i32 to -255 magic value to indicate mod installation is done
-    AtomicI32::store(installed_mods_ptr, -255,Ordering::SeqCst);
+    AtomicI32::store(installed_mods_ptr, -255, Ordering::SeqCst);
 }
