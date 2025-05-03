@@ -239,6 +239,13 @@ fn convert_to_iostore_directory(
     let mut utoc_name = pak.mod_name.clone();
     utoc_name.push_str(".utoc");
 
+    let mut paths = vec![];
+    collect_files(&mut paths, &to_pak_dir)?;
+
+    if pak.fix_mesh {
+        mesh_patch(&mut paths, &to_pak_dir.to_path_buf())?;
+    }
+
     let action = ActionToZen::new(
         to_pak_dir.clone(),
         mod_dir.join(utoc_name),
@@ -267,12 +274,7 @@ fn convert_to_iostore_directory(
 
     let output_file = File::create(mod_dir.join(pak_name))?;
 
-    let mut paths = vec![];
-    collect_files(&mut paths, &to_pak_dir)?;
 
-    if pak.fix_mesh {
-        mesh_patch(&mut paths, &to_pak_dir.to_path_buf())?;
-    }
 
     let rel_paths = paths
         .par_iter()
