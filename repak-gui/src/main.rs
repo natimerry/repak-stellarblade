@@ -16,7 +16,7 @@ use eframe::egui::{
     RichText, ScrollArea, Stroke, Style, TextEdit, TextStyle, Theme,
 };
 use egui_flex::{item, Flex, FlexAlign};
-use log::{debug, error, info, warn, LevelFilter};
+use log::{debug, error, info, trace, warn, LevelFilter};
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use path_clean::PathClean;
 use repak::PakReader;
@@ -648,7 +648,6 @@ impl eframe::App for RepakModManager {
                         }
                         EventKind::Other => {}
                         _ => {
-                            debug!("Received event {:?}", event.kind);
                             collect_pak = true;
                         }
                     }
@@ -658,7 +657,7 @@ impl eframe::App for RepakModManager {
         // if install_mod_dialog is open we dont want to listen to events
 
         if collect_pak {
-            info!("Collecting pak files");
+            trace!("Collecting pak files");
             self.collect_pak_files();
         }
 

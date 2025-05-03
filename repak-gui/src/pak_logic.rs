@@ -229,6 +229,7 @@ fn convert_to_iostore_directory(
     to_pak_dir: PathBuf,
     packed_files_count: &AtomicI32,
 ) -> Result<(), repak::Error> {
+
     let mut pak_name = pak.mod_name.clone();
     pak_name.push_str(".pak");
 
@@ -255,10 +256,19 @@ fn convert_to_iostore_directory(
     action_to_zen(action, config).expect("Failed to convert to zen");
 
     // NOW WE CREATE THE FAKE PAK FILE WITH THE CONTENTS BEING A TEXT FILE LISTING ALL CHUNKNAMES
+
+    if pak.audio_mod{
+        repak_dir(pak, to_pak_dir.clone(), mod_dir.clone(),packed_files_count)?; // if its an audio mod we need the full pak
+    }
+
     let output_file = File::create(mod_dir.join(pak_name))?;
 
     let mut paths = vec![];
     collect_files(&mut paths, &to_pak_dir)?;
+
+    if pak.fix_mesh {
+        mesh_patch(&mut paths, &to_pak_dir.to_path_buf())?;
+    }
 
     let rel_paths = paths
         .par_iter()
@@ -339,7 +349,9 @@ pub fn repak_dir(
         mesh_patch(&mut paths, &to_pak_dir.to_path_buf())?;
     }
 
+
     paths.sort();
+
     let builder = repak::PakBuilder::new()
         .compression(vec![pak.compression])
         .key(AES_KEY.clone().0);
@@ -367,11 +379,22 @@ pub fn repak_dir(
             (rel.to_string(), entry)
         })
         .collect::<Vec<_>>();
+
+    let mut rel_paths = vec![];
     for (path, entry) in partial_entry {
         debug!("Writing: {}", path);
-        pak_writer.write_entry(path, entry)?;
+        pak_writer.write_entry(path.clone(), entry)?;
         installed_mods_ptr.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        rel_paths.push(path);
     }
+
+    let rel_paths_bytes: Vec<u8> = rel_paths.join("\n").into_bytes();
+
+    let entry = entry_builder
+        .build_entry(true, rel_paths_bytes, "chunknames")
+        .expect("Failed to build entry");
+
+    pak_writer.write_entry("chunknames".to_string(), entry)?;
     pak_writer.write_index()?;
 
     log::info!("Wrote pak file successfully");

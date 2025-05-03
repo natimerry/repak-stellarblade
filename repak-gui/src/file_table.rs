@@ -60,6 +60,8 @@ impl FileTable {
                 ..Default::default()
             };
         }
+        // TODO: show pak details for audio mods
+
 
         let entry_pak = pak_reader.get_file_entry(entry).unwrap();
 
