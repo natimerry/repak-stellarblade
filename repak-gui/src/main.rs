@@ -308,10 +308,18 @@ impl RepakModManager {
                                         }
                                     }
                                     if ui.button("Delete mod").clicked(){
-                                        let delete_res = fs::remove_file(&pak_file.path);
-                                        if let Err(e)  = delete_res {
-                                            error!("Failed to delete pak: {}",e);
-                                            return;
+                                        let pak_path = &pak_file.path.clone();
+                                        let utoc_path = pak_path.with_extension("utoc");
+                                        let ucas_path  = pak_path.with_extension("ucas");
+
+                                        let files_to_delete = vec![pak_path, &utoc_path, &ucas_path];
+
+                                        for i in files_to_delete {
+                                            let delete_res = fs::remove_file(i);
+                                            if let Err(e)  = delete_res {
+                                                error!("Failed to delete pak: {}",e);
+                                                return;
+                                            }
                                         }
                                         self.current_pak_file_idx = None;
                                     }
