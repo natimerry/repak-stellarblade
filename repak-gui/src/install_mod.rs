@@ -32,7 +32,8 @@ pub struct InstallableMod {
     pub reader: Option<PakReader>,
     pub mod_path: PathBuf,
     pub total_files: usize,
-    pub audio_mod: bool,
+    // pub audio_mod: bool,
+    pub just_copy_files: bool,
     pub is_archive: bool,
 }
 
@@ -249,11 +250,6 @@ impl ModInstallRequest {
                                 ui.add_enabled(
                                     mods.is_dir || mods.repak,
                                     Checkbox::new(&mut mods.fix_mesh, "Fix mesh"),
-                                );
-
-                                ui.add_enabled(
-                                    true,
-                                    Checkbox::new(&mut mods.audio_mod, "Audio Mod"),
                                 );
 
                                 let text_edit = TextEdit::singleline(&mut mods.mount_point);

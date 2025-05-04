@@ -9,6 +9,9 @@ use sha2::Digest;
 use std::fs::File;
 use std::io::{BufReader, Write};
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
+use std::sync::Arc;
+use retoc::{action_manifest, ActionManifest, Config, FGuid};
 
 pub struct FileTable {
     striped: bool,
@@ -18,6 +21,7 @@ pub struct FileTable {
     // scroll_to_row: Option<usize>,
     file_contents: Vec<FileEntry>,
     selection: usize,
+    showing_utoc: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -29,6 +33,8 @@ struct FileEntry {
     compressed: String,
     uncompressed: String,
     offset: String,
+    bulkdata: Option<usize>,
+    package_data: Option<usize>,
 }
 impl Default for FileTable {
     fn default() -> Self {
@@ -38,58 +44,81 @@ impl Default for FileTable {
             clickable: true,
             file_contents: vec![],
             selection: usize::MAX,
+            showing_utoc: false,
         }
     }
 }
 
+fn read_utoc(utoc_path: &Path, pak_reader: &PakReader,pak_path: &Path) -> Vec<FileEntry> {
+    let action_mn = ActionManifest::new(PathBuf::from(utoc_path));
+    let mut config = Config {
+        container_header_version_override: None,
+        ..Default::default()
+    };
+
+    let aes_toc =
+        retoc::AesKey::from_str("0C263D8C22DCB085894899C3A3796383E9BF9DE0CBFB08C9BF2DEF2E84F29D74")
+            .unwrap();
+
+    config.aes_keys.insert(FGuid::default(), aes_toc.clone());
+    let config = Arc::new(config);
+
+    let ops = action_manifest(action_mn,config).expect("Failed to read utoc");
+    let ret = ops.oplog.entries.iter().map(|entry| {
+        let name = entry.packagestoreentry.packagename.clone();
+        FileEntry {
+            file_path: name,
+            pak_path: PathBuf::from(pak_path),
+            pak_reader: pak_reader.clone(),
+            // entry: pak_reader.get_file_entry(entry).unwrap(),
+            compressed: "Unavailable".to_string(),
+            uncompressed: "Unavailable".to_string(),
+            offset: "Unavailable".to_string(),
+            bulkdata: Some(entry.bulkdata.len()),
+            package_data: Some(entry.packagedata.len()),
+        }
+    }).collect::<Vec<_>>();
+
+    ret
+}
 impl FileTable {
     pub fn new(pak_reader: &PakReader, pak_path: &Path) -> Self {
-        let binding = pak_reader.files();
-        let string_bind = String::from("");
-        let entry = binding.first().unwrap_or(&string_bind);
+        // If the utoc exists, use the utoc
 
-        if entry != "chunknames" {
-            warn!("Expected chunknames to be first entry, got {}", entry);
-            warn!("This is probably a bug in the mod");
-            warn!("Please report this to the mod author");
-            warn!("This will not affect the mod in any way");
-            warn!("The mod will still work, but the file table will be empty");
+        let mut utoc_path = pak_path.to_path_buf();
+        utoc_path.set_extension("utoc");
 
-            return Self {
-                file_contents: vec![],
-                ..Default::default()
-            };
-        }
-        // TODO: show pak details for audio mods
+        let file_entries = {
+            if utoc_path.exists() {
+                read_utoc(&utoc_path, pak_reader,pak_path)
+            }
+            else {
+                let entries = pak_reader
+                    .files().to_vec();
 
-
-        let entry_pak = pak_reader.get_file_entry(entry).unwrap();
-
-        let mut reader = BufReader::new(File::open(&pak_path).expect("Failed to open pak file"));
-
-        let buffer = pak_reader
-            .get(entry.as_str(), &mut reader)
-            .expect("Failed to read file");
-        let content = String::from_utf8(buffer).expect("Invalid UTF-8 in file");
-        let lines: Vec<String> = content.lines().map(|line| line.to_string()).collect();
-
-        let file_entries = lines
-            .iter()
-            .map(|line| {
-                FileEntry {
-                    file_path: line.clone(),
-                    pak_path: PathBuf::from(pak_path),
-                    pak_reader: pak_reader.clone(),
-                    // entry: pak_reader.get_file_entry(entry).unwrap(),
-                    compressed: entry_pak.compressed.to_string(),
-                    uncompressed: entry_pak.uncompressed.to_string(),
-                    offset: format!("{:#x}", entry_pak.offset),
-                }
-            })
-            .collect::<Vec<_>>();
+                entries
+                    .iter()
+                    .map(|entry| {
+                        let entry_pak = pak_reader.get_file_entry(entry).unwrap();
+                        FileEntry {
+                            file_path: entry.clone(),
+                            pak_path: PathBuf::from(pak_path),
+                            pak_reader: pak_reader.clone(),
+                            // entry: pak_reader.get_file_entry(entry).unwrap(),
+                            compressed: entry_pak.compressed.to_string(),
+                            uncompressed: entry_pak.uncompressed.to_string(),
+                            offset: format!("{:#x}", entry_pak.offset),
+                            bulkdata: None,
+                            package_data: None,
+                        }
+                    })
+                    .collect::<Vec<_>>()
+            }
+        };
 
         Self {
             file_contents: file_entries,
+            showing_utoc: utoc_path.exists(),
             ..Default::default()
         }
     }
@@ -116,20 +145,36 @@ impl FileTable {
         if self.clickable {
             table = table.sense(egui::Sense::click());
         }
+
+
         table
             .header(20.0, |mut header| {
                 header.col(|ui| {
                     ui.label("Path");
                 });
-                header.col(|ui| {
-                    ui.label("Offset");
-                });
-                header.col(|ui| {
-                    ui.label("Compressed");
-                });
-                header.col(|ui| {
-                    ui.label("Uncompressed");
-                });
+
+
+                if self.showing_utoc {
+                    header.col(|ui| {
+                        ui.label("Bulkdata Chunks");
+                    });
+
+                    header.col(|ui| {
+                        ui.label("PackageData Chunks");
+                    });
+                }
+                else{
+                    header.col(|ui| {
+                        ui.label("Offset");
+                    });
+
+                    header.col(|ui| {
+                        ui.label("Compressed");
+                    });
+                    header.col(|ui| {
+                        ui.label("Uncompressed");
+                    });
+                }
                 // header.col(|ui| {
                 //     ui.label("Compression Slot");
                 // });
@@ -148,17 +193,28 @@ impl FileTable {
                         };
                     })
                     .1
-                    .context_menu(|ui| show_ctx_menu(ui, entry));
+                    .context_menu(|ui| show_ctx_menu(ui, entry,self.showing_utoc));
 
-                    row.col(|ui| {
-                        ui.label(&entry.offset);
-                    });
-                    row.col(|ui| {
-                        ui.label(&entry.compressed);
-                    });
-                    row.col(|ui| {
-                        ui.label(&entry.uncompressed);
-                    });
+                    if self.showing_utoc {
+                        row.col(|ui| {
+                            ui.label(&entry.bulkdata.unwrap_or(0).to_string());
+                        });
+                        row.col(|ui| {
+                            ui.label(&entry.package_data.unwrap_or(0).to_string());
+                        });
+                    }
+                    else {
+                        row.col(|ui| {
+                            ui.label(&entry.offset);
+                        });
+                        row.col(|ui| {
+                            ui.label(&entry.compressed);
+                        });
+                        row.col(|ui| {
+                            ui.label(&entry.uncompressed);
+                        });
+                    }
+
                     self.toggle_row_selection(row_idx, &row.response());
                 });
             });
@@ -169,7 +225,11 @@ impl FileTable {
         }
     }
 }
-fn show_ctx_menu(ui: &mut egui::Ui, entry: &FileEntry) {
+fn show_ctx_menu(ui: &mut egui::Ui, entry: &FileEntry, is_utoc: bool) {
+    if is_utoc {
+        ui.label("This is a utoc file, you can't extract files from it.");
+        return;
+    }
     if ui.button("Extract").clicked() {
         let name = PathBuf::from(&entry.file_path)
             .file_name()

@@ -16,8 +16,8 @@ use std::str::FromStr;
 use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 use std::sync::Arc;
 use tempfile::tempdir;
-use walkdir::WalkDir;
 use uasset_mesh_patch_rivals::{Logger, PatchFixer};
+use walkdir::WalkDir;
 
 struct PrintLogger;
 
@@ -223,8 +223,8 @@ pub fn extract_pak_to_dir(pak: &InstallableMod, install_dir: PathBuf) -> Result<
     Ok(())
 }
 
-use retoc::*;
 use crate::archive_mods::{extract_rar, extract_zip};
+use retoc::*;
 
 fn convert_to_iostore_directory(
     pak: &InstallableMod,
@@ -232,6 +232,12 @@ fn convert_to_iostore_directory(
     to_pak_dir: PathBuf,
     packed_files_count: &AtomicI32,
 ) -> Result<(), repak::Error> {
+    let mod_type = pak.mod_type.clone();
+    if mod_type == "Audio" || mod_type == "Movies" {
+        repak_dir(pak, to_pak_dir, mod_dir, packed_files_count)?;
+        return Ok(());
+    }
+
 
     let mut pak_name = pak.mod_name.clone();
     pak_name.push_str(".pak");
@@ -267,11 +273,6 @@ fn convert_to_iostore_directory(
 
     // NOW WE CREATE THE FAKE PAK FILE WITH THE CONTENTS BEING A TEXT FILE LISTING ALL CHUNKNAMES
 
-    if pak.audio_mod{
-        repak_dir(pak, to_pak_dir.clone(), mod_dir.clone(),packed_files_count)?; // if its an audio mod we need the full pak
-        return Ok(());
-    }
-
     let output_file = File::create(mod_dir.join(pak_name))?;
 
     let rel_paths = paths
@@ -285,7 +286,6 @@ fn convert_to_iostore_directory(
             rel.to_string()
         })
         .collect::<Vec<_>>();
-
 
     let builder = repak::PakBuilder::new()
         .compression(vec![pak.compression])
@@ -303,7 +303,6 @@ fn convert_to_iostore_directory(
     let entry = entry_builder
         .build_entry(true, rel_paths_bytes, "chunknames")
         .expect("Failed to build entry");
-
 
     pak_writer.write_entry("chunknames".to_string(), entry)?;
     pak_writer.write_index()?;
@@ -352,7 +351,6 @@ pub fn repak_dir(
     if pak.fix_mesh {
         mesh_patch(&mut paths, &to_pak_dir.to_path_buf())?;
     }
-
 
     paths.sort();
 
@@ -417,13 +415,20 @@ pub fn install_mods_in_viewport(
             break;
         }
 
-        if installable_mod.is_archive{
+        if installable_mod.is_archive {
             let tempdir = tempdir().unwrap();
             if installable_mod.mod_path.to_str().unwrap().ends_with(".zip") {
-                extract_zip(installable_mod.mod_path.to_str().unwrap(), tempdir.path().to_str().unwrap()).expect("Unable to extract zip file");
-            }
-            else if installable_mod.mod_path.to_str().unwrap().ends_with(".rar"){
-                extract_rar(installable_mod.mod_path.to_str().unwrap(), tempdir.path().to_str().unwrap()).expect("Unable to extract rar file");
+                extract_zip(
+                    installable_mod.mod_path.to_str().unwrap(),
+                    tempdir.path().to_str().unwrap(),
+                )
+                .expect("Unable to extract zip file");
+            } else if installable_mod.mod_path.to_str().unwrap().ends_with(".rar") {
+                extract_rar(
+                    installable_mod.mod_path.to_str().unwrap(),
+                    tempdir.path().to_str().unwrap(),
+                )
+                .expect("Unable to extract rar file");
             }
             // now walkdir and collect all files inside it, if the name ends with utoc, ucas or pok copy it to game directory
             for entry in WalkDir::new(tempdir.path()) {
@@ -439,13 +444,11 @@ pub fn install_mods_in_viewport(
                             let dest_path = Path::new(&PathBuf::from(&mod_directory))
                                 .join(path.file_name().unwrap());
 
-                            fs::copy(path, dest_path)
-                                .expect("Failed to copy mod file");
+                            fs::copy(path, dest_path).expect("Failed to copy mod file");
                             installed_mods_ptr.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
                         }
                     }
                 }
-
             }
             continue;
         }
@@ -472,8 +475,12 @@ pub fn install_mods_in_viewport(
         }
 
         if installable_mod.is_dir {
-            match convert_to_iostore_directory(installable_mod, PathBuf::from(&mod_directory), PathBuf::from(&installable_mod.mod_path) ,installed_mods_ptr)
-            {
+            match convert_to_iostore_directory(
+                installable_mod,
+                PathBuf::from(&mod_directory),
+                PathBuf::from(&installable_mod.mod_path),
+                installed_mods_ptr,
+            ) {
                 Ok(_) => {
                     info!("Installed mod: {}", installable_mod.mod_name);
                 }
@@ -482,8 +489,6 @@ pub fn install_mods_in_viewport(
                 }
             }
         }
-
-
     }
     // set i32 to -255 magic value to indicate mod installation is done
     AtomicI32::store(installed_mods_ptr, -255, Ordering::SeqCst);

@@ -4,3 +4,4 @@
 [submodule "retoc-rivals"]
 	path = retoc-rivals
 	url = https://github.com/natimerry/retoc-rivals
+	branch = master
