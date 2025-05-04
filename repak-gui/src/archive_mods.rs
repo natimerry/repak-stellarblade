@@ -56,6 +56,7 @@ pub fn rar_length(rar_path: &str) -> Result<usize, unrar::error::UnrarError> {
     Ok(len)
 }
 
+
 pub fn zip_length(zip_path: &str) -> Result<usize, io::Error> {
     let file = File::open(zip_path)?;
     let archive = ZipArchive::new(file)?;

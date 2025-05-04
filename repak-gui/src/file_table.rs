@@ -1,3 +1,4 @@
+use crate::utoc_utils::read_utoc;
 use eframe::egui;
 use eframe::egui::OutputCommand::CopyText;
 use eframe::egui::RichText;
@@ -25,16 +26,17 @@ pub struct FileTable {
 }
 
 #[derive(Clone, Debug)]
-struct FileEntry {
-    file_path: String,
-    pak_path: PathBuf,
+pub(crate) struct FileEntry {
+    /// This is the path of the internal file mounting path
+    pub(crate) file_path: String,
+    pub(crate) pak_path: PathBuf,
     // entry: Entry,
-    pak_reader: PakReader,
-    compressed: String,
-    uncompressed: String,
-    offset: String,
-    bulkdata: Option<usize>,
-    package_data: Option<usize>,
+    pub(crate) pak_reader: PakReader,
+    pub(crate) compressed: String,
+    pub(crate) uncompressed: String,
+    pub(crate) offset: String,
+    pub(crate) bulkdata: Option<usize>,
+    pub(crate) package_data: Option<usize>,
 }
 impl Default for FileTable {
     fn default() -> Self {
@@ -49,38 +51,7 @@ impl Default for FileTable {
     }
 }
 
-fn read_utoc(utoc_path: &Path, pak_reader: &PakReader,pak_path: &Path) -> Vec<FileEntry> {
-    let action_mn = ActionManifest::new(PathBuf::from(utoc_path));
-    let mut config = Config {
-        container_header_version_override: None,
-        ..Default::default()
-    };
 
-    let aes_toc =
-        retoc::AesKey::from_str("0C263D8C22DCB085894899C3A3796383E9BF9DE0CBFB08C9BF2DEF2E84F29D74")
-            .unwrap();
-
-    config.aes_keys.insert(FGuid::default(), aes_toc.clone());
-    let config = Arc::new(config);
-
-    let ops = action_manifest(action_mn,config).expect("Failed to read utoc");
-    let ret = ops.oplog.entries.iter().map(|entry| {
-        let name = entry.packagestoreentry.packagename.clone();
-        FileEntry {
-            file_path: name,
-            pak_path: PathBuf::from(pak_path),
-            pak_reader: pak_reader.clone(),
-            // entry: pak_reader.get_file_entry(entry).unwrap(),
-            compressed: "Unavailable".to_string(),
-            uncompressed: "Unavailable".to_string(),
-            offset: "Unavailable".to_string(),
-            bulkdata: Some(entry.bulkdata.len()),
-            package_data: Some(entry.packagedata.len()),
-        }
-    }).collect::<Vec<_>>();
-
-    ret
-}
 impl FileTable {
     pub fn new(pak_reader: &PakReader, pak_path: &Path) -> Self {
         // If the utoc exists, use the utoc

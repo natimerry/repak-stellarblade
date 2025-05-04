@@ -1,6 +1,6 @@
 use crate::pak_logic::install_mods_in_viewport;
 use crate::{setup_custom_style, ICON};
-use crate::utils::get_current_pak_characteristics;
+use crate::utils::{collect_files, get_current_pak_characteristics};
 use eframe::egui;
 use eframe::egui::{Align, Checkbox, ComboBox, Context, Label, TextEdit};
 use egui_extras::{Column, TableBuilder};
@@ -316,8 +316,7 @@ fn count_files_recursive(path: &Path) -> usize {
     count
 }
 
-
-pub fn map_paths_to_mods(paths: &[PathBuf]) -> Vec<InstallableMod> {
+fn map_to_mods_internal(paths: &[PathBuf]) -> Vec<InstallableMod>{
     let installable_mods = paths
         .iter()
         .map(|path| {
@@ -351,9 +350,14 @@ pub fn map_paths_to_mods(paths: &[PathBuf]) -> Vec<InstallableMod> {
 
             if is_dir{
                 len = count_files_recursive(path);
+                let mut files = vec![];
+                collect_files(&mut files, path)?;
+                let files = files.iter().map(|s|s.to_str().unwrap().to_string()).collect::<Vec<_>>();
+                modtype = get_current_pak_characteristics(files);
             }
 
             if is_archive{
+                modtype = "Season 2 Archives".to_string();
                 let len = {
                     let mut len = 0;
                     if extension == "zip"{
@@ -396,82 +400,20 @@ pub fn map_paths_to_mods(paths: &[PathBuf]) -> Vec<InstallableMod> {
         })
         .filter_map(|x: Result<InstallableMod, repak::Error>| x.ok())
         .collect::<Vec<_>>();
-
-
     installable_mods
 }
 
-//TODO: support zip files
+pub fn map_paths_to_mods(paths: &[PathBuf]) -> Vec<InstallableMod> {
+    let installable_mods = map_to_mods_internal(paths);
+    installable_mods
+}
+
 pub fn map_dropped_file_to_mods(dropped_files: &[egui::DroppedFile]) -> Vec<InstallableMod> {
-    let files = dropped_files
+    let paths = dropped_files
         .iter()
-        .map(|dropped_file| {
-            let path = dropped_file.path.clone().unwrap();
-
-            let is_dir = path.clone().is_dir();
-
-            let extension = path.extension().unwrap_or_default();
-            let is_archive = extension == "zip" || extension == "rar";
-
-            let mut modtype = "Unknown".to_string();
-            let mut pak = None;
-
-            let mut len = 1;
-            let pakfile = path.clone();
-
-            let extension = path.extension().unwrap_or_default();
-            let is_archive = extension == "zip" || extension == "rar";
-
-            if !is_dir && !is_archive{
-                let builder = repak::PakBuilder::new()
-                    .key(AES_KEY.clone().0)
-                    .reader(&mut BufReader::new(File::open(pakfile.clone()).unwrap()));
-                match builder {
-                    Ok(builder) => {
-                        len = builder.files().iter().len();
-                        pak = Some(builder.clone());
-                        modtype = get_current_pak_characteristics(builder.files());
-                    }
-                    Err(e) => {
-                        error!("Error reading pak file: {}", e);
-                        return Err(e);
-                    }
-                }
-            }
-
-            if is_dir{
-                len = count_files_recursive(&path);
-            }
-
-            if is_archive{
-                let xlen = {
-                    if extension == "zip"{
-                        len = zip_length(path.to_str().unwrap()).unwrap()
-                    }
-                    else if extension == "rar" {
-                        len = rar_length(path.to_str().unwrap()).unwrap()
-                    }
-                    len
-                };
-                len = xlen;
-            }
-
-            Ok(InstallableMod {
-                mod_name: pakfile.file_stem().unwrap().to_str().unwrap().to_string(),
-                mod_type: modtype,
-                repak: !is_dir,
-                fix_mesh: false,
-                is_dir,
-                reader: pak,
-                mod_path: pakfile.clone(),
-                mount_point: "../../../".to_string(),
-                path_hash_seed: "00000000".to_string(),
-                total_files: len,
-                is_archive,
-                ..Default::default()
-            })
-        })
-        .filter_map(|x: Result<InstallableMod, repak::Error>| x.ok())
+        .map(|f| f.path.clone().unwrap())
         .collect::<Vec<_>>();
-    files
+
+    let installable_mods = map_to_mods_internal(&paths);
+    installable_mods
 }

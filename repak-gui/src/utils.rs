@@ -67,37 +67,34 @@ pub fn get_character_mod_skin(file: &str) -> Option<ModType> {
     }
 }
 pub fn get_current_pak_characteristics(mod_contents: Vec<String>) -> String {
-    let mut is_default: Option<String> = None;
+    let mut fallback: Option<String> = None;
+
     for file in &mod_contents {
-        if let Some(stripped) = file.strip_prefix("Marvel/Content/Marvel/") {
-            let category = stripped.split('/').next().unwrap_or_default();
-            if category == "Characters" {
-                let mod_type = get_character_mod_skin(stripped);
-                if let Some(mod_type) = mod_type {
-                    match mod_type {
-                        ModType::Default(default) => {
-                            is_default = Some(default);
-                        }
-                        ModType::Custom(skin_name) => return skin_name,
-                    }
-                } else {
-                    return "Character (Unknown)".to_string();
+        let path = file
+            .strip_prefix("Marvel/Content/Marvel/")
+            .or_else(|| file.strip_prefix("/Game/Marvel/"))
+            .unwrap_or(file);
+
+        let category = path.split('/').next().unwrap_or_default();
+
+        match category {
+            "Characters" => {
+                match get_character_mod_skin(path) {
+                    Some(ModType::Custom(skin)) => return skin,
+                    Some(ModType::Default(name)) => fallback = Some(name),
+                    None => return "Character (Unknown)".to_string(),
                 }
-            } else if category == "UI" {
-                return "UI".to_string();
-            } else if category == "Movies" {
-                return "Movies".to_string();
             }
-        }
-        if file.contains("WwiseAudio") {
-            return "Audio".to_string();
+            "UI" => return "UI".to_string(),
+            "Movies" => return "Movies".to_string(),
+            _ if path.contains("WwiseAudio") => return "Audio".to_string(),
+            _ => {}
         }
     }
-    if let Some(is_default) = is_default {
-        return is_default;
-    }
-    "Unknown".to_string()
+
+    fallback.unwrap_or_else(|| "Unknown".to_string())
 }
+
 
 use log::info;
 use serde::{Deserialize, Serialize};

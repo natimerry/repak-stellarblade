@@ -7,6 +7,7 @@ mod utils;
 
 pub mod ios_widget;
 mod archive_mods;
+mod utoc_utils;
 
 use crate::file_table::FileTable;
 use crate::install_mod::{map_dropped_file_to_mods, map_paths_to_mods, InstallableMod, ModInstallRequest, AES_KEY};
@@ -33,6 +34,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use std::{fs, thread};
 use crate::pak_logic::extract_pak_to_dir;
+use crate::utoc_utils::read_utoc;
 
 // use eframe::egui::WidgetText::RichText;
 #[derive(Deserialize, Serialize, Default)]
@@ -42,7 +44,7 @@ struct RepakModManager {
     #[serde(skip)]
     current_pak_file_idx: Option<usize>,
     #[serde(skip)]
-    pak_files: Vec<PakEntry>,
+    pak_files: Vec<ModEntry>,
     #[serde(skip)]
     table: Option<FileTable>,
     #[serde(skip)]
@@ -54,7 +56,7 @@ struct RepakModManager {
 }
 
 #[derive(Clone)]
-struct PakEntry {
+struct ModEntry {
     reader: PakReader,
     path: PathBuf,
     enabled: bool,
@@ -157,7 +159,7 @@ impl RepakModManager {
                     continue;
                 }
                 let pak = pak.unwrap();
-                let entry = PakEntry {
+                let entry = ModEntry {
                     reader: pak,
                     path,
                     enabled: !disabled,
@@ -209,6 +211,7 @@ impl RepakModManager {
         let pak_path = self.pak_files[self.current_pak_file_idx.unwrap()]
             .path
             .clone();
+
         let full_paths = pak.files().into_iter().collect::<Vec<_>>();
 
         ui.collapsing("Encryption details", |ui| {
@@ -245,7 +248,22 @@ impl RepakModManager {
                     .strong()
                     .size(self.default_font_size + 1.),
             ));
-            ui.add(Label::new(get_current_pak_characteristics(full_paths.clone()).to_string()));
+            let mut utoc_path = pak_path.to_path_buf();
+            utoc_path.set_extension("utoc");
+
+            let paths = {
+                if utoc_path.exists() {
+                    let file = read_utoc(&utoc_path, pak, &pak_path).iter().map(|entry|{
+                        entry.file_path.clone()
+                    }).collect::<Vec<_>>();
+                    file
+                }
+                else {
+                    full_paths.clone()
+                }
+            };
+
+            ui.add(Label::new(get_current_pak_characteristics(paths)));
         });
         if self.table.is_none() {
             self.table = Some(FileTable::new(pak, &pak_path));
