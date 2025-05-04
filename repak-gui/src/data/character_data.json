@@ -988,5 +988,29 @@
     "id": "8063",
     "skinid": "8063001",
     "skin name": "Default"
+  },
+  {
+    "name": "Emma Frost",
+    "id": "1053",
+    "skinid": "1053001",
+    "skin name": "Default"
+  },
+  {
+    "name": "Emma Frost",
+    "id": "1053",
+    "skinid": "1053100",
+    "skin name": "Blue Sapphire"
+  },
+  {
+    "name": "Emma Frost",
+    "id": "1053",
+    "skinid": "1053102",
+    "skin name": "Golden Diamond"
+  },
+  {
+    "name": "Emma Frost",
+    "id": "1053",
+    "skinid": "1053500",
+    "skin name": "X-Revolution"
   }
 ]
