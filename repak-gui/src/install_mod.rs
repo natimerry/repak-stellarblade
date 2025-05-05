@@ -280,9 +280,14 @@ impl ModInstallRequest {
                             ui.label(&mods.mod_type);
                         });
                         row.col(|ui| {
-                            let label = match mods.is_dir {
-                                true => "Directory",
-                                false => "Pak",
+                            let label = if mods.is_dir{
+                                "Directory"
+                            }
+                            else if mods.iostore {
+                                "Iostore"
+                            }
+                            else {
+                                "Pakfile"
                             };
                             ui.label(label);
                         });
