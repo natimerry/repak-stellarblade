@@ -512,7 +512,10 @@ impl RepakModManager {
                     debug!("Mods: {:?}", mods);
                     self.install_mod_dialog =
                         Some(ModInstallRequest::new(mods, self.game_path.clone()));
-                    debug!("Installing mod: {:?}", &self.install_mod_dialog);
+
+                    if let Some(dialog) = &self.install_mod_dialog{
+                        trace!("Installing mod: {:#?}", dialog.mods);
+                    }
                 } else {
                     // Handle the case where not all dropped files are valid
                     // You can show an error or prompt the user here

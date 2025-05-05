@@ -1,26 +1,32 @@
 pub mod install_mod_logic;
 
-use crate::{setup_custom_style, ICON};
+use crate::install_mod::install_mod_logic::archives::*;
+use crate::install_mod::install_mod_logic::pak_files::create_repak_from_pak;
 use crate::utils::{collect_files, get_current_pak_characteristics};
+use crate::utoc_utils::read_utoc;
+use crate::{setup_custom_style, ICON};
 use eframe::egui;
 use eframe::egui::{Align, Checkbox, ComboBox, Context, Label, TextEdit};
 use egui_extras::{Column, TableBuilder};
 use egui_flex::{item, Flex, FlexAlign};
 use install_mod_logic::install_mods_in_viewport;
-use log::error;
-use crate::install_mod::install_mod_logic::archives::*;
+use log::{debug, error};
 use repak::utils::AesKey;
+use repak::Compression::Oodle;
 use repak::{Compression, PakReader};
+use serde::de::Unexpected::Str;
 use std::fs::File;
 use std::io::BufReader;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use std::sync::atomic::{AtomicBool, AtomicI32};
 use std::sync::atomic::Ordering::SeqCst;
+use std::sync::atomic::{AtomicBool, AtomicI32};
 use std::sync::{Arc, LazyLock};
-use std::thread;
+use std::{fs, thread};
+use tempfile::tempdir;
+use walkdir::WalkDir;
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 pub struct InstallableMod {
     pub mod_name: String,
     pub mod_type: String,
@@ -34,8 +40,33 @@ pub struct InstallableMod {
     pub reader: Option<PakReader>,
     pub mod_path: PathBuf,
     pub total_files: usize,
+    pub iostore: bool,
+    // the only reason we keep this is to filter out the archives during collection
+    pub is_archived: bool,
+    pub enabled: bool,
     // pub audio_mod: bool,
-    pub is_archive: bool,
+}
+
+impl Default for InstallableMod {
+    fn default() -> Self {
+        InstallableMod{
+            mod_name: "".to_string(),
+            mod_type: "".to_string(),
+            repak: false,
+            fix_mesh: false,
+            is_dir: false,
+            editing: false,
+            path_hash_seed: "".to_string(),
+            mount_point: "".to_string(),
+            compression: Default::default(),
+            reader: None,
+            mod_path: Default::default(),
+            total_files: 0,
+            iostore: false,
+            is_archived: false,
+            enabled: true,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -117,14 +148,18 @@ impl ModInstallRequest {
                                 });
 
                                 if install_mod.clicked() {
-                                    let mut mods =
-                                        self.mods.to_vec(); // clone
+                                    let mut mods = self.mods.to_vec(); // clone
 
                                     let dir = self.mod_directory.clone();
                                     let new_atomic = self.installed_mods_cbk.clone();
                                     let new_stop_thread = self.stop_thread.clone();
                                     self.joined_thread = Some(std::thread::spawn(move || {
-                                        install_mods_in_viewport(&mut mods, &dir, &new_atomic,&new_stop_thread);
+                                        install_mods_in_viewport(
+                                            &mut mods,
+                                            &dir,
+                                            &new_atomic,
+                                            &new_stop_thread,
+                                        );
                                     }));
                                     self.animate = true;
                                 }
@@ -167,6 +202,7 @@ impl ModInstallRequest {
             // .resizable(true)
             .cell_layout(egui::Layout::left_to_right(egui::Align::LEFT))
             .column(Column::auto())
+            .column(Column::auto())
             .column(Column::remainder().at_least(400.)) // mod name
             .column(Column::auto()) // Character
             .column(Column::auto()) // type
@@ -176,6 +212,10 @@ impl ModInstallRequest {
 
         table
             .header(20., |mut header| {
+                header.col(|ui| {
+                    ui.label("Enabled");
+                });
+
                 header.col(|ui| {
                     ui.label("Row");
                 });
@@ -198,6 +238,10 @@ impl ModInstallRequest {
             .body(|mut body| {
                 for (rowidx, mods) in self.mods.iter_mut().enumerate() {
                     body.row(20., |mut row| {
+                        row.col(|ui|{
+                            ui.add(Checkbox::new(&mut mods.enabled,""));
+                        });
+
                         row.col(|ui| {
                             ui.add(Label::new(format!("{})", rowidx + 1)).halign(Align::RIGHT));
                         });
@@ -297,34 +341,100 @@ impl ModInstallRequest {
     }
 }
 
-pub static  AES_KEY: LazyLock<AesKey> = LazyLock::new(|| {
+pub static AES_KEY: LazyLock<AesKey> = LazyLock::new(|| {
     AesKey::from_str("0C263D8C22DCB085894899C3A3796383E9BF9DE0CBFB08C9BF2DEF2E84F29D74")
         .expect("Unable to initialise AES_KEY")
 });
 
+fn find_mods_from_archive(path: &str) -> Vec<InstallableMod> {
+    let mut new_mods = Vec::<InstallableMod>::new();
+    for entry in WalkDir::new(path) {
+        let entry = entry.expect("Failed to read directory entry");
+        let path = entry.path();
+        if path.is_file() {
+            let builder = repak::PakBuilder::new()
+                .key(AES_KEY.clone().0)
+                .reader(&mut BufReader::new(File::open(path).unwrap()));
+
+            if let Ok(builder) = builder {
+                let mut len = 1;
+                let mut modtype = String::from("Unknown");
+                let mut iostore = false;
 
 
-fn map_to_mods_internal(paths: &[PathBuf]) -> Vec<InstallableMod>{
-    let installable_mods = paths
+                let pak_path = path.with_extension("pak");
+                let utoc_path = path.with_extension("utoc");
+                let ucas_path = path.with_extension("ucas");
+
+                if pak_path.exists() && utoc_path.exists() && ucas_path.exists()
+                {
+                    // this is a mod of type s2, create a new Installable mod from its characteristics
+                    let utoc_path = path.with_extension("utoc");
+
+                    let files = read_utoc(&utoc_path, &builder, &path);
+                    let files = files
+                        .iter()
+                        .map(|x| x.file_path.clone())
+                        .collect::<Vec<_>>();
+                    len = files.len();
+                    modtype = get_current_pak_characteristics(files);
+                    iostore = true;
+                }
+                // IF ONLY PAK IS FOUND WE NEED TO EXTRACT AND INSTALL THE PAK
+                else if pak_path.exists()  {
+                    let files = builder.files();
+                    len = files.len();
+                    modtype = get_current_pak_characteristics(files);
+                }
+
+                let installable_mod = InstallableMod {
+                    mod_name: path.file_stem().unwrap().to_str().unwrap().to_string(),
+                    mod_type: modtype.to_string(),
+                    repak: true,
+                    fix_mesh: false,
+                    is_dir: false,
+                    reader: Some(builder),
+                    mod_path: path.to_path_buf(),
+                    mount_point: "../../../".to_string(),
+                    path_hash_seed: "00000000".to_string(),
+                    total_files: len,
+                    iostore,
+                    is_archived: false,
+                    editing: false,
+                    compression: Oodle,
+                    ..Default::default()
+                };
+
+                new_mods.push(installable_mod);
+            }
+        }
+    }
+
+    new_mods
+}
+
+fn map_to_mods_internal(paths: &[PathBuf]) -> Vec<InstallableMod> {
+    let mut extensible_vec: Vec<InstallableMod> = Vec::new();
+    let mut installable_mods = paths
         .iter()
         .map(|path| {
             let is_dir = path.clone().is_dir();
-
             let extension = path.extension().unwrap_or_default();
             let is_archive = extension == "zip" || extension == "rar";
 
             let mut modtype = "Unknown".to_string();
             let mut pak = None;
+            let mut len = 1;
 
-            if !is_dir && !is_archive{
+            if !is_dir && !is_archive {
                 let builder = repak::PakBuilder::new()
                     .key(AES_KEY.clone().0)
                     .reader(&mut BufReader::new(File::open(path.clone()).unwrap()));
-
                 match builder {
                     Ok(builder) => {
                         pak = Some(builder.clone());
                         modtype = get_current_pak_characteristics(builder.files());
+                        len = builder.files().len();
                     }
                     Err(e) => {
                         error!("Error reading pak file: {}", e);
@@ -333,41 +443,38 @@ fn map_to_mods_internal(paths: &[PathBuf]) -> Vec<InstallableMod>{
                 }
             }
 
-
-            if is_dir{
+            if is_dir {
                 let mut files = vec![];
                 collect_files(&mut files, path)?;
-                let files = files.iter().map(|s|s.to_str().unwrap().to_string()).collect::<Vec<_>>();
+                let files = files
+                    .iter()
+                    .map(|s| s.to_str().unwrap().to_string())
+                    .collect::<Vec<_>>();
+                len = files.len();
                 modtype = get_current_pak_characteristics(files);
             }
 
-            if is_archive{
+            if is_archive {
                 modtype = "Season 2 Archives".to_string();
-                let _len = {
-                    let mut len = 0;
-                    if extension == "zip"{
-                        len = zip_length(path.to_str().unwrap()).unwrap()
-                    }
-                    else if extension == "rar" {
-                        len = rar_length(path.to_str().unwrap()).unwrap()
-                    }
-                    len
-                };
+                let tempdir = tempdir()
+                    .unwrap()
+                    .path()
+                    .as_os_str()
+                    .to_str()
+                    .unwrap()
+                    .to_string();
+
+                if extension == "zip" {
+                    extract_zip(path.to_str().unwrap(), &tempdir).expect("Unable to install mod")
+                } else if extension == "rar" {
+                    extract_rar(path.to_str().unwrap(), &tempdir).expect("Unable to install mod")
+                }
+
+                // Now find pak files / s2 archives and turn them into installable mods
+                let mut new_mods = find_mods_from_archive(&tempdir);
+                extensible_vec.append(&mut new_mods);
             }
 
-            let mut len = 0;
-            if is_archive{
-                let xlen = {
-                    if extension == "zip"{
-                        len = zip_length(path.to_str().unwrap()).unwrap()
-                    }
-                    else if extension == "rar" {
-                        len = rar_length(path.to_str().unwrap()).unwrap()
-                    }
-                    len
-                };
-                len = xlen;
-            }
             Ok(InstallableMod {
                 mod_name: path.file_stem().unwrap().to_str().unwrap().to_string(),
                 mod_type: modtype,
@@ -379,12 +486,17 @@ fn map_to_mods_internal(paths: &[PathBuf]) -> Vec<InstallableMod>{
                 mount_point: "../../../".to_string(),
                 path_hash_seed: "00000000".to_string(),
                 total_files: len,
-                is_archive,
+                is_archived: is_archive,
                 ..Default::default()
             })
         })
         .filter_map(|x: Result<InstallableMod, repak::Error>| x.ok())
+        .filter(|x| !x.is_archived)
         .collect::<Vec<_>>();
+
+    installable_mods.extend(extensible_vec);
+
+    debug!("Install mods: {:?}", installable_mods);
     installable_mods
 }
 

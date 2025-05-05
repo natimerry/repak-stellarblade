@@ -26,21 +26,18 @@ use std::fs::File;
 use std::io;
 use unrar::Archive;
 use std::path::Path;
-use log::trace;
+use log::{debug, trace};
 use zip::ZipArchive;
 
 pub fn extract_rar(rar_path: &str, output_dir: &str) -> Result<(), unrar::error::UnrarError> {
+    let output_dir = Path::new(output_dir);
     let mut archive =
         Archive::new(rar_path)
             .open_for_processing()?;
     while let Some(header) = archive.read_header()? {
-        trace!(
-            "{} bytes: {}",
-            header.entry().unpacked_size,
-            header.entry().filename.to_string_lossy(),
-        );
+        let filename = header.entry().filename.clone();
         archive = if header.entry().is_file() {
-            header.extract_to(output_dir)?
+            header.extract_to(output_dir.join(filename))?
         } else {
             header.skip()?
         };
