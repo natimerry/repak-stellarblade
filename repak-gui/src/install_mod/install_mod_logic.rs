@@ -49,8 +49,11 @@ pub fn install_from_archive(installable_mod: &InstallableMod, mod_directory: &Pa
                     installed_mods_ptr.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
                 }
                 // IF ONLY PAK IS FOUND WE NEED TO EXTRACT AND INSTALL THE PAK
-                if ext.eq_ignore_ascii_case("pak") {
-                    
+                else if ext.eq_ignore_ascii_case("pak") {
+                    create_repak_from_pak(
+                        installable_mod, 
+                        mod_directory.to_path_buf(),
+                         installed_mods_ptr).expect("Failed to install .pak mod from archive");
                 }
             }
         }
