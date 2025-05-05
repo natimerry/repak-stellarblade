@@ -8,17 +8,17 @@ use egui_extras::{Column, TableBuilder};
 use egui_flex::{item, Flex, FlexAlign};
 use install_mod_logic::install_mods_in_viewport;
 use log::error;
+use crate::install_mod::install_mod_logic::archives::*;
 use repak::utils::AesKey;
 use repak::{Compression, PakReader};
 use std::fs::File;
 use std::io::BufReader;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::atomic::{AtomicBool, AtomicI32};
 use std::sync::atomic::Ordering::SeqCst;
 use std::sync::{Arc, LazyLock};
-use std::{fs, thread};
-use crate::archive_mods::{rar_length, zip_length};
+use std::thread;
 
 #[derive(Debug, Default, Clone)]
 pub struct InstallableMod {
@@ -35,7 +35,6 @@ pub struct InstallableMod {
     pub mod_path: PathBuf,
     pub total_files: usize,
     // pub audio_mod: bool,
-    pub just_copy_files: bool,
     pub is_archive: bool,
 }
 
@@ -303,20 +302,7 @@ pub static  AES_KEY: LazyLock<AesKey> = LazyLock::new(|| {
         .expect("Unable to initialise AES_KEY")
 });
 
-fn count_files_recursive(path: &Path) -> usize {
-    let mut count = 0;
-    if let Ok(entries) = fs::read_dir(path) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_file() {
-                count += 1;
-            } else if path.is_dir() {
-                count += count_files_recursive(&path);
-            }
-        }
-    }
-    count
-}
+
 
 fn map_to_mods_internal(paths: &[PathBuf]) -> Vec<InstallableMod>{
     let installable_mods = paths

@@ -1,6 +1,7 @@
 pub mod patch_meshes;
 pub mod pak_files;
 pub mod iotoc;
+pub mod archives;
 
 use std::fs;
 use crate::install_mod::InstallableMod;
@@ -11,7 +12,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 use tempfile::tempdir;
 use walkdir::WalkDir;
-use crate::archive_mods::{extract_rar, extract_zip};
+use crate::install_mod::install_mod_logic::archives::*;
 
 
 pub fn install_from_archive(installable_mod: &InstallableMod, mod_directory: &Path, installed_mods_ptr: &AtomicI32){

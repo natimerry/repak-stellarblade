@@ -5,7 +5,6 @@ use crate::utils::collect_files;
 use rayon::iter::IntoParallelRefIterator;
 use rayon::iter::ParallelIterator;
 use repak::Version;
-use std::fs;
 use std::io::BufWriter;
 use std::path::PathBuf;
 use std::str::FromStr;

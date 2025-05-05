@@ -1,4 +1,4 @@
-pub  fn extract_zip(zip_path: &str, output_dir: &str) -> io::Result<()> {
+pub fn extract_zip(zip_path: &str, output_dir: &str) -> io::Result<()> {
     let file = File::open(zip_path)?;
     let mut archive = ZipArchive::new(file)?;
 
@@ -49,7 +49,7 @@ pub fn extract_rar(rar_path: &str, output_dir: &str) -> Result<(), unrar::error:
 }
 
 pub fn rar_length(rar_path: &str) -> Result<usize, unrar::error::UnrarError> {
-    let mut archive =
+    let archive =
         Archive::new(rar_path)
             .open_for_listing()?;
     let len = archive.into_iter().filter(|e| e.is_ok()).map(|e|e.unwrap()).collect::<Vec<_>>().len();

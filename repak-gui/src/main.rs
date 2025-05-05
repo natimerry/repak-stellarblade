@@ -5,7 +5,6 @@ mod install_mod;
 mod utils;
 
 pub mod ios_widget;
-mod archive_mods;
 mod utoc_utils;
 
 use crate::file_table::FileTable;
