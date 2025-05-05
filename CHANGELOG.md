@@ -2,6 +2,13 @@
 
 Nothing Yet!
 
+# Version 2.4.0 (2025-05-05)
+
+This release contains code simplification and bug fixes.
+
+## Changes:
+- Added ability to fix dragged .zip/.rar files containing one or more `.pak` files into repak gui 
+
 # Version 2.4.0 (2025-05-04)
 
 This release contains QOL improvements and movie mod fixes for the mod manager.
