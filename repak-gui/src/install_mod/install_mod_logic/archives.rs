@@ -26,7 +26,6 @@ use std::fs::File;
 use std::io;
 use unrar::Archive;
 use std::path::Path;
-use log::{debug, trace};
 use zip::ZipArchive;
 
 pub fn extract_rar(rar_path: &str, output_dir: &str) -> Result<(), unrar::error::UnrarError> {
