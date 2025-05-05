@@ -3,16 +3,12 @@ use eframe::egui;
 use eframe::egui::OutputCommand::CopyText;
 use eframe::egui::RichText;
 use egui_extras::{Column, TableBuilder};
-use log::warn;
 use repak::PakReader;
 use rfd::FileDialog;
 use sha2::Digest;
 use std::fs::File;
 use std::io::{BufReader, Write};
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
-use std::sync::Arc;
-use retoc::{action_manifest, ActionManifest, Config, FGuid};
 
 pub struct FileTable {
     striped: bool,

@@ -1,10 +1,12 @@
-use crate::pak_logic::install_mods_in_viewport;
+pub mod install_mod_logic;
+
 use crate::{setup_custom_style, ICON};
 use crate::utils::{collect_files, get_current_pak_characteristics};
 use eframe::egui;
 use eframe::egui::{Align, Checkbox, ComboBox, Context, Label, TextEdit};
 use egui_extras::{Column, TableBuilder};
 use egui_flex::{item, Flex, FlexAlign};
+use install_mod_logic::install_mods_in_viewport;
 use log::error;
 use repak::utils::AesKey;
 use repak::{Compression, PakReader};
@@ -328,7 +330,6 @@ fn map_to_mods_internal(paths: &[PathBuf]) -> Vec<InstallableMod>{
             let mut modtype = "Unknown".to_string();
             let mut pak = None;
 
-            let mut len = 1;
             if !is_dir && !is_archive{
                 let builder = repak::PakBuilder::new()
                     .key(AES_KEY.clone().0)
@@ -336,7 +337,6 @@ fn map_to_mods_internal(paths: &[PathBuf]) -> Vec<InstallableMod>{
 
                 match builder {
                     Ok(builder) => {
-                        len = builder.files().iter().len();
                         pak = Some(builder.clone());
                         modtype = get_current_pak_characteristics(builder.files());
                     }
@@ -349,7 +349,6 @@ fn map_to_mods_internal(paths: &[PathBuf]) -> Vec<InstallableMod>{
 
 
             if is_dir{
-                len = count_files_recursive(path);
                 let mut files = vec![];
                 collect_files(&mut files, path)?;
                 let files = files.iter().map(|s|s.to_str().unwrap().to_string()).collect::<Vec<_>>();
@@ -358,7 +357,7 @@ fn map_to_mods_internal(paths: &[PathBuf]) -> Vec<InstallableMod>{
 
             if is_archive{
                 modtype = "Season 2 Archives".to_string();
-                let len = {
+                let _len = {
                     let mut len = 0;
                     if extension == "zip"{
                         len = zip_length(path.to_str().unwrap()).unwrap()

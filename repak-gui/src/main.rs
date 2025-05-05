@@ -2,7 +2,6 @@ extern crate core;
 
 mod file_table;
 mod install_mod;
-mod pak_logic;
 mod utils;
 
 pub mod ios_widget;
@@ -18,6 +17,7 @@ use eframe::egui::{
     RichText, ScrollArea, Stroke, Style, TextEdit, TextStyle, Theme,
 };
 use egui_flex::{item, Flex, FlexAlign};
+use install_mod::install_mod_logic::pak_files::extract_pak_to_dir;
 use log::{debug, error, info, trace, warn, LevelFilter};
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use path_clean::PathClean;
@@ -33,7 +33,6 @@ use std::sync::mpsc::{channel, Receiver};
 use std::sync::Arc;
 use std::time::Duration;
 use std::{fs, thread};
-use crate::pak_logic::extract_pak_to_dir;
 use crate::utoc_utils::read_utoc;
 
 // use eframe::egui::WidgetText::RichText;
