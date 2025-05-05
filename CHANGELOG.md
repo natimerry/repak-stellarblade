@@ -2,6 +2,13 @@
 
 Nothing Yet!
 
+# Version 2.5.1 (2025-05-06)
+
+## New features:
+- Ability to install mods from zip files directly
+- Show packaging type in install window
+- Allow users to unselect specific mods when installing in batch
+
 # Version 2.4.0 (2025-05-05)
 
 This release contains code simplification and bug fixes.
