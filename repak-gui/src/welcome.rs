@@ -1,12 +1,13 @@
 use crate::{setup_custom_style, ICON};
 use eframe::egui;
-use eframe::egui::{Context, Rect};
+use eframe::egui::{Color32, Context, Rect, RichText};
 use log::debug;
 
 struct Contributer {
     name: String,
     link: String,
     description: String,
+    platform: String,
 }
 
 fn show_contrib(ui: &mut egui::Ui, contributer: Contributer) {
@@ -14,8 +15,12 @@ fn show_contrib(ui: &mut egui::Ui, contributer: Contributer) {
     let body_color = egui::Color32::WHITE;
 
     ui.horizontal_wrapped(|ui| {
-        ui.colored_label(name_color, "• ");
-        ui.hyperlink_to(contributer.name, contributer.link);
+        ui.colored_label(name_color, "- ");
+        ui.hyperlink_to(contributer.name, &contributer.link);
+
+        let url_color = Color32::from_rgb(0,255, 255);
+        let link_text = RichText::new(format!("({})", contributer.platform)).color(url_color).strong();
+        ui.hyperlink_to(link_text, &contributer.link);
     });
     ui.horizontal_wrapped(|ui| {
         ui.label(egui::RichText::new(contributer.description).color(body_color));
@@ -27,19 +32,28 @@ fn show_support_section(ui: &mut egui::Ui) {
     let contributers: Vec<Contributer> = vec![
         Contributer {
             name: "natimerry".to_string(),
-            link: "https://github.com/natimerry".to_string(),
+            link: "https://buymeacoffee.com/natimerry".to_string(),
             description: "I maintain forks of repak and retoc, which convert mods into a format Marvel Rivals can load. I also maintain the mod manager for easy mod installation.".to_string(),
+            platform: "BuyMeACoffee".to_string(),
         },
         Contributer {
             name: "DeathChaosV2".to_string(),
             link: "https://ko-fi.com/deathchaos".to_string(),
             description: "DeathChaos maintains the signature bypass, which enables mods to work. Without him, we would not be able to install mods into the game.".to_string(),
+            platform: "Ko-Fi".to_string(),
         },
-
+        Contributer {
+            name: "krisanthyme (Otter)".to_string(),
+            link: "https://ko-fi.com/krisanthyme".to_string(),
+            description: "Wrote the original mesh fixer and also provided the logic using which repak can fix / build mesh mods".to_string(),
+            platform: "Ko-Fi".to_string(),
+        },
         Contributer {
             name: "amMatt".to_string(),
             link: "https://www.patreon.com/amMatt".to_string(),
             description: "For his IOStorePak tool which allowed us to test and build mods for season 2. Furthermore he created and manages the modding Discord server!".to_string(),
+            platform: "Patreon".to_string(),
+
         },
     ];
 
@@ -65,9 +79,8 @@ fn show_support_section(ui: &mut egui::Ui) {
             ui.horizontal_wrapped(|ui| {
                 ui.label(
                     egui::RichText::new(
-"Modding support requires constant effort — from reverse engineering and tooling to updating older mods and ensuring compatibility with game updates. Just in the past two days, over ",
+                        "Modding support requires constant effort — from reverse engineering and tooling to updating older mods and ensuring compatibility with game updates. Just in the past two days, over",
                     )
-
                         .color(body_color),
                 );
                 ui.label(
@@ -76,7 +89,7 @@ fn show_support_section(ui: &mut egui::Ui) {
                         .strong(),
                 );
                 ui.label(
-                    egui::RichText::new(" were committed to ").color(body_color)
+                    egui::RichText::new("were committed to").color(body_color)
                 );
                 ui.label(
                     egui::RichText::new("repak-rivals")
@@ -87,7 +100,7 @@ fn show_support_section(ui: &mut egui::Ui) {
 
             ui.add_space(4.0);
 
-            ui.horizontal_wrapped(|ui|{
+            ui.horizontal_wrapped(|ui| {
                 ui.label(
                     egui::RichText::new(
                         "This work takes time, skill, and dedication. Your support helps us keep building tools, \
@@ -105,8 +118,8 @@ fn show_support_section(ui: &mut egui::Ui) {
 
             ui.add_space(6.0);
 
-            for contrib in contributers{
-                show_contrib(&mut ui,contrib);
+            for contrib in contributers {
+                show_contrib(&mut ui, contrib);
             }
 
             ui.add_space(4.0);
@@ -114,16 +127,14 @@ fn show_support_section(ui: &mut egui::Ui) {
         });
 }
 
-
-pub struct ShowWelcome {
-}
+pub struct ShowWelcome {}
 
 impl ShowWelcome {
     pub fn welcome_screen(&mut self, ctx: &egui::Context, show_callback: &mut bool) {
         let viewport_options = egui::ViewportBuilder::default()
             .with_title("Support Us")
             .with_icon(ICON.clone())
-            .with_inner_size([800., 525.0])
+            .with_inner_size([800., 540.0])
             .with_always_on_top();
 
         Context::show_viewport_immediate(
