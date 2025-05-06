@@ -6,11 +6,15 @@ mod utils;
 
 pub mod ios_widget;
 mod utoc_utils;
+mod welcome;
 
 use crate::file_table::FileTable;
-use crate::install_mod::{map_dropped_file_to_mods, map_paths_to_mods, InstallableMod, ModInstallRequest, AES_KEY};
+use crate::install_mod::{
+    map_dropped_file_to_mods, map_paths_to_mods, InstallableMod, ModInstallRequest, AES_KEY,
+};
 use crate::utils::find_marvel_rivals;
 use crate::utils::get_current_pak_characteristics;
+use crate::utoc_utils::read_utoc;
 use eframe::egui::{
     self, style::Selection, Align, Align2, Button, Color32, IconData, Id, Label, LayerId, Order,
     RichText, ScrollArea, Stroke, Style, TextEdit, TextStyle, Theme,
@@ -32,7 +36,8 @@ use std::sync::mpsc::{channel, Receiver};
 use std::sync::Arc;
 use std::time::Duration;
 use std::{fs, thread};
-use crate::utoc_utils::read_utoc;
+
+const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
 // use eframe::egui::WidgetText::RichText;
 #[derive(Deserialize, Serialize, Default)]
@@ -51,6 +56,13 @@ struct RepakModManager {
     install_mod_dialog: Option<ModInstallRequest>,
     #[serde(skip)]
     receiver: Option<Receiver<Event>>,
+
+    #[serde(skip)]
+    welcome_screen: Option<ShowWelcome>,
+
+    #[serde(skip)]
+    hide_welcome: bool,
+    version: Option<String>,
 }
 
 #[derive(Clone)]
@@ -118,6 +130,7 @@ impl RepakModManager {
             pak_files: vec![],
             current_pak_file_idx: None,
             table: None,
+            version: Some(VERSION.to_string()),
             ..Default::default()
         };
         set_custom_font_size(&cc.egui_ctx, x.default_font_size);
@@ -251,12 +264,12 @@ impl RepakModManager {
 
             let paths = {
                 if utoc_path.exists() {
-                    let file = read_utoc(&utoc_path, pak, &pak_path).iter().map(|entry|{
-                        entry.file_path.clone()
-                    }).collect::<Vec<_>>();
+                    let file = read_utoc(&utoc_path, pak, &pak_path)
+                        .iter()
+                        .map(|entry| entry.file_path.clone())
+                        .collect::<Vec<_>>();
                     file
-                }
-                else {
+                } else {
                     full_paths.clone()
                 }
             };
@@ -419,6 +432,17 @@ impl RepakModManager {
             info!("Loading mods: {}", config.game_path.to_string_lossy());
             config.collect_pak_files();
 
+            let mut show_welcome = false;
+            if let Some(ref version) = config.version {
+                if version != VERSION {
+                    show_welcome = true;
+                }
+            } else {
+                show_welcome = true;
+            }
+            config.version = Option::from(VERSION.to_string());
+            config.hide_welcome = !show_welcome;
+            config.welcome_screen = Some(ShowWelcome{});
             config.receiver = Some(rx);
 
             Ok(config)
@@ -428,6 +452,8 @@ impl RepakModManager {
                 path.to_string_lossy()
             );
             let mut x = Self::new(ctx);
+            x.welcome_screen = Some(ShowWelcome{});
+            x.hide_welcome=false;
             x.receiver = Some(rx);
             Ok(x)
         };
@@ -443,11 +469,9 @@ impl RepakModManager {
                 .unwrap();
 
                 if path.exists() {
-                    watcher
-                        .watch(&path, RecursiveMode::Recursive)
-                        .unwrap();
+                    watcher.watch(&path, RecursiveMode::Recursive).unwrap();
                 }
-                
+
                 // Keep the thread alive
                 loop {
                     thread::sleep(Duration::from_secs(1));
@@ -499,7 +523,11 @@ impl RepakModManager {
                 // Check if all files are either directories or have the .pak extension
                 let all_valid = dropped_files.iter().all(|file| {
                     let path = file.path.clone().unwrap();
-                    path.is_dir() || path.extension().map(|ext| ext == "pak" || ext == "zip" || ext == "rar").unwrap_or(false)
+                    path.is_dir()
+                        || path
+                            .extension()
+                            .map(|ext| ext == "pak" || ext == "zip" || ext == "rar")
+                            .unwrap_or(false)
                 });
 
                 if all_valid {
@@ -513,7 +541,7 @@ impl RepakModManager {
                     self.install_mod_dialog =
                         Some(ModInstallRequest::new(mods, self.game_path.clone()));
 
-                    if let Some(dialog) = &self.install_mod_dialog{
+                    if let Some(dialog) = &self.install_mod_dialog {
                         trace!("Installing mod: {:#?}", dialog.mods);
                     }
                 } else {
@@ -606,6 +634,10 @@ impl RepakModManager {
                     egui::widgets::global_theme_preference_switch(ui);
                 });
             });
+
+            if ui.button("Donate").clicked() {
+                self.hide_welcome = false;
+            }
         });
 
         Ok(())
@@ -644,7 +676,6 @@ impl RepakModManager {
                                 info!("Opened mod folder: {}", self.game_path.to_string_lossy());
                             }
                             process.unwrap().wait().unwrap();
-
                         }
 
                         #[cfg(target_os = "linux")]
@@ -661,6 +692,12 @@ impl RepakModManager {
 }
 impl eframe::App for RepakModManager {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        if let Some(ref mut welcome) = self.welcome_screen{
+            if !self.hide_welcome{
+                welcome.welcome_screen(ctx,&mut self.hide_welcome);
+            }
+        }
+
         let mut collect_pak = false;
 
         if !self.file_drop_viewport_open && self.install_mod_dialog.is_some() {
@@ -742,11 +779,10 @@ const ICON: LazyCell<Arc<IconData>> = LazyCell::new(|| {
     let d = eframe::icon_data::from_png_bytes(include_bytes!(
         "../../repak-gui/icons/RepakLogoNonCurveFadedRed-modified.png"
     ))
-        .expect("The icon data must be valid");
+    .expect("The icon data must be valid");
 
     Arc::new(d)
 });
-
 
 #[cfg(target_os = "windows")]
 fn free_console() -> bool {
@@ -761,7 +797,7 @@ fn is_console() -> bool {
     }
 }
 #[cfg(target_os = "windows")]
-#[link(name="Kernel32")]
+#[link(name = "Kernel32")]
 extern "system" {
     fn GetConsoleProcessList(processList: *mut u32, count: u32) -> u32;
     fn FreeConsole() -> i32;
@@ -769,6 +805,7 @@ extern "system" {
 #[allow(unused_imports)]
 #[cfg(target_os = "windows")]
 use std::panic::PanicHookInfo;
+use crate::welcome::ShowWelcome;
 
 #[cfg(target_os = "windows")]
 #[cfg(not(debug_assertions))]
@@ -803,7 +840,6 @@ fn main() {
         std::env::set_var("WINIT_UNIX_BACKEND", "x11");
         std::env::remove_var("WAYLAND_DISPLAY");
     }
-
 
     let log_file = File::create("latest.log").expect("Failed to create log file");
     let level_filter = if cfg!(debug_assertions) {
