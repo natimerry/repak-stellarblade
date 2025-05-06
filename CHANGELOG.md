@@ -2,6 +2,13 @@
 
 Nothing Yet!
 
+# Version 2.5.2 (2025-05-06)
+
+This release contains a window asking users to donate to the project.
+
+## Changes:
+- Clean up temporary directories after creating them.
+
 # Version 2.5.1 (2025-05-06)
 
 ## New features:
