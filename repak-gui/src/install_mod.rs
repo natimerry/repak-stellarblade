@@ -478,6 +478,7 @@ fn map_to_mods_internal(paths: &[PathBuf]) -> Vec<InstallableMod> {
                 // Now find pak files / s2 archives and turn them into installable mods
                 let mut new_mods = find_mods_from_archive(&tempdir);
                 extensible_vec.append(&mut new_mods);
+                fs::remove_dir_all(tempdir).expect("Unable to remove temporary directory");
             }
 
             Ok(InstallableMod {

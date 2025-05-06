@@ -11,8 +11,6 @@ use pak_files::create_repak_from_pak;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
-use tempfile::tempdir;
-use walkdir::WalkDir;
 
 pub fn install_mods_in_viewport(
     mods: &mut [InstallableMod],
