@@ -2,6 +2,12 @@
 
 Nothing Yet!
 
+# Version 2.5.4 (2025-05-06)
+
+## Changes:
+- Fix removal of tempdir causes issues in install mods
+
+
 # Version 2.5.2 (2025-05-06)
 
 This release contains a window asking users to donate to the project.
