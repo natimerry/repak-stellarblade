@@ -7,7 +7,7 @@ use std::{fs, io};
 #[derive(Debug, Deserialize, Serialize, Hash)]
 struct SkinEntry {
     skinid: String,
-    #[serde(rename = "skin name")]
+    #[serde(rename = "skin_name")]
     skin_name: String,
     name: String,
 }
@@ -22,6 +22,7 @@ static SKIN_ENTRIES: LazyLock<HashMap<u32, SkinEntry>> = LazyLock::new(|| {
 
     skin_map
 });
+
 static SKIN_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"[0-9]{4}\/[0-9]{7}").unwrap()
 });
