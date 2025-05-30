@@ -32,9 +32,9 @@ fn show_support_section(ui: &mut egui::Ui) {
     let contributers: Vec<Contributer> = vec![
         Contributer {
             name: "natimerry".to_string(),
-            link: "https://buymeacoffee.com/natimerry".to_string(),
+            link: "https://ko-fi.com/natimerry".to_string(),
             description: "I maintain forks of repak and retoc, which convert mods into a format Marvel Rivals can load. I also maintain the mod manager for easy mod installation.".to_string(),
-            platform: "BuyMeACoffee".to_string(),
+            platform: "Ko-Fi".to_string(),
         },
         Contributer {
             name: "DeathChaosV2".to_string(),
