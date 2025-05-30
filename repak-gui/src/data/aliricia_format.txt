@@ -97,7 +97,7 @@
 **1028 - Ultron :**
     ↳ 1028100 - Mechanical Phantom 
       ↳ 1028102 - Golden Ultron
-        ↳ 1028300 - X-Tron
+        ↳ 1028500 - X-Tron
 
 **1029 - Magik :**
     ↳ 1029100 - Amethyst Armor
