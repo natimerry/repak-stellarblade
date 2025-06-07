@@ -36,6 +36,7 @@ use std::sync::mpsc::{channel, Receiver};
 use std::sync::Arc;
 use std::time::Duration;
 use std::{fs, thread};
+use walkdir::WalkDir;
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -138,12 +139,14 @@ impl RepakModManager {
     }
 
     fn collect_pak_files(&mut self) {
-        if !self.game_path.exists() {
-        } else {
+        if self.game_path.exists() {
             let mut vecs = vec![];
 
-            for entry in std::fs::read_dir(self.game_path.clone()).unwrap() {
-                let entry = entry.unwrap();
+            for entry in WalkDir::new(&self.game_path)
+                .into_iter()
+                .filter_map(Result::ok)
+                .filter(|e| e.file_type().is_file())
+            {
                 let path = entry.path();
                 if path.is_dir() {
                     continue;
@@ -172,7 +175,7 @@ impl RepakModManager {
                 let pak = pak.unwrap();
                 let entry = ModEntry {
                     reader: pak,
-                    path,
+                    path: path.to_path_buf(),
                     enabled: !disabled,
                 };
                 vecs.push(entry);
