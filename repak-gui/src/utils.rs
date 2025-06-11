@@ -108,7 +108,7 @@ pub fn find_marvel_rivals() -> Option<PathBuf> {
     }
 
     for lib in shit {
-        let path = lib.join("steamapps/common/MarvelRivals/MarvelGame/Marvel/Content/Paks");
+        let path = lib.join("steamapps/common/StellarBlade/SB/Content/Paks");
         if path.exists() {
             return Some(path);
         }

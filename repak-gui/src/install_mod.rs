@@ -346,10 +346,6 @@ impl ModInstallRequest {
     }
 }
 
-pub static AES_KEY: LazyLock<AesKey> = LazyLock::new(|| {
-    AesKey::from_str("0C263D8C22DCB085894899C3A3796383E9BF9DE0CBFB08C9BF2DEF2E84F29D74")
-        .expect("Unable to initialise AES_KEY")
-});
 
 fn find_mods_from_archive(path: &str) -> Vec<InstallableMod> {
     let mut new_mods = Vec::<InstallableMod>::new();
@@ -358,7 +354,6 @@ fn find_mods_from_archive(path: &str) -> Vec<InstallableMod> {
         let path = entry.path();
         if path.is_file() {
             let builder = repak::PakBuilder::new()
-                .key(AES_KEY.clone().0)
                 .reader(&mut BufReader::new(File::open(path).unwrap()));
 
             if let Ok(builder) = builder {
@@ -396,7 +391,6 @@ fn find_mods_from_archive(path: &str) -> Vec<InstallableMod> {
                     mod_name: path.file_stem().unwrap().to_str().unwrap().to_string(),
                     mod_type: modtype.to_string(),
                     repak: true,
-                    fix_mesh: false,
                     is_dir: false,
                     reader: Some(builder),
                     mod_path: path.to_path_buf(),
@@ -433,7 +427,6 @@ fn map_to_mods_internal(paths: &[PathBuf]) -> Vec<InstallableMod> {
 
             if !is_dir && !is_archive {
                 let builder = repak::PakBuilder::new()
-                    .key(AES_KEY.clone().0)
                     .reader(&mut BufReader::new(File::open(path.clone()).unwrap()));
                 match builder {
                     Ok(builder) => {

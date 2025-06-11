@@ -79,7 +79,7 @@ fn show_support_section(ui: &mut egui::Ui) {
             ui.horizontal_wrapped(|ui| {
                 ui.label(
                     egui::RichText::new(
-                        "Modding support requires constant effort — from reverse engineering and tooling to updating older mods and ensuring compatibility with game updates. Just in the past two days, over",
+                        "Modding support requires constant effort — from reverse engineering and tooling to updating older mods and ensuring compatibility with game updates. Since season 2 of rivals over",
                     )
                         .color(body_color),
                 );
@@ -95,6 +95,12 @@ fn show_support_section(ui: &mut egui::Ui) {
                     egui::RichText::new("repak-rivals")
                         .color(highlight_color)
                         .italics(),
+                );
+                ui.label(
+                    egui::RichText::new(
+                        "the codebase this mod manager is based on.",
+                    )
+                        .color(body_color),
                 );
             });
 

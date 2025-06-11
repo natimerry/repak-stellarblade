@@ -1,5 +1,4 @@
-use crate::install_mod::install_mod_logic::patch_meshes::mesh_patch;
-use crate::install_mod::{InstallableMod, AES_KEY};
+use crate::install_mod::{InstallableMod};
 use crate::utils::collect_files;
 use log::debug;
 use path_clean::PathClean;
@@ -111,15 +110,11 @@ pub fn repak_dir(
     let mut paths = vec![];
     collect_files(&mut paths, &to_pak_dir)?;
 
-    if pak.fix_mesh {
-        mesh_patch(&mut paths, &to_pak_dir.to_path_buf())?;
-    }
 
     paths.sort();
 
     let builder = repak::PakBuilder::new()
-        .compression(vec![pak.compression])
-        .key(AES_KEY.clone().0);
+        .compression(vec![pak.compression]);
 
     let mut pak_writer = builder.writer(
         BufWriter::new(output_file),

@@ -10,7 +10,7 @@ mod welcome;
 
 use crate::file_table::FileTable;
 use crate::install_mod::{
-    map_dropped_file_to_mods, map_paths_to_mods, InstallableMod, ModInstallRequest, AES_KEY,
+    map_dropped_file_to_mods, map_paths_to_mods, InstallableMod, ModInstallRequest
 };
 use crate::utils::find_marvel_rivals;
 use crate::utils::get_current_pak_characteristics;
@@ -72,20 +72,20 @@ struct ModEntry {
     path: PathBuf,
     enabled: bool,
 }
-fn use_dark_red_accent(style: &mut Style) {
-    style.visuals.hyperlink_color = Color32::from_hex("#f71034").expect("Invalid color");
-    style.visuals.text_cursor.stroke.color = Color32::from_hex("#941428").unwrap();
+fn use_dark_neon_accent(style: &mut Style) {
+    style.visuals.hyperlink_color = Color32::from_hex("#00401d").expect("Invalid color");
+    style.visuals.text_cursor.stroke.color = Color32::from_hex("#00401d").unwrap();
     style.visuals.selection = Selection {
-        bg_fill: Color32::from_rgba_unmultiplied(241, 24, 14, 60),
+        bg_fill: Color32::from_rgba_unmultiplied(0x0, 0x40, 0x1d, 60),
         stroke: Stroke::new(1.0, Color32::from_hex("#000000").unwrap()),
     };
 
-    style.visuals.selection.bg_fill = Color32::from_rgba_unmultiplied(241, 24, 14, 60);
+    style.visuals.selection.bg_fill = Color32::from_rgba_unmultiplied(0x0, 0x40, 0x1d, 60);
 }
 
 pub fn setup_custom_style(ctx: &egui::Context) {
-    ctx.style_mut_of(Theme::Dark, use_dark_red_accent);
-    ctx.style_mut_of(Theme::Light, use_dark_red_accent);
+    ctx.style_mut_of(Theme::Dark, use_dark_neon_accent);
+    ctx.style_mut_of(Theme::Light, use_dark_neon_accent);
 }
 
 fn set_custom_font_size(ctx: &egui::Context, size: f32) {
@@ -164,9 +164,8 @@ impl RepakModManager {
                     }
                 }
 
-                let mut builder = repak::PakBuilder::new();
-                builder = builder.key(AES_KEY.clone().0);
-                let pak = builder.reader(&mut BufReader::new(File::open(path.clone()).unwrap()));
+                let builder = repak::PakBuilder::new();
+                let pak = builder.reader(&mut BufReader::new(File::open(path).unwrap()));
 
                 if let Err(_e) = pak {
                     warn!("Error opening pak file");
@@ -406,7 +405,7 @@ impl RepakModManager {
     fn config_path() -> PathBuf {
         let mut path = dirs::config_dir()
             .unwrap_or_else(|| PathBuf::from("."))
-            .join("repak_manager");
+            .join("repak_stellarblade");
 
         debug!("Config path: {}", path.to_string_lossy());
         if !path.exists() {
@@ -505,7 +504,7 @@ impl RepakModManager {
                 true => "Drop mod files here",
                 false => "Choose a game directory first!!!",
             };
-            painter.rect_filled(rect, 0.0, Color32::from_rgba_unmultiplied(241, 24, 14, 40));
+            painter.rect_filled(rect, 0.0, Color32::from_rgba_unmultiplied(0x0, 0x40, 0x1d, 60));
             painter.text(
                 rect.center(),
                 Align2::CENTER_CENTER,

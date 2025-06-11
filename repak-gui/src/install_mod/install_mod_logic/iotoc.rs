@@ -1,6 +1,5 @@
 use crate::install_mod::install_mod_logic::pak_files::repak_dir;
-use crate::install_mod::install_mod_logic::patch_meshes;
-use crate::install_mod::{InstallableMod, AES_KEY};
+use crate::install_mod::{InstallableMod};
 use crate::utils::collect_files;
 use rayon::iter::IntoParallelRefIterator;
 use rayon::iter::ParallelIterator;
@@ -39,25 +38,17 @@ pub fn convert_to_iostore_directory(
     let mut paths = vec![];
     collect_files(&mut paths, &to_pak_dir)?;
 
-    if pak.fix_mesh {
-        patch_meshes::mesh_patch(&mut paths, &to_pak_dir.to_path_buf())?;
-    }
-
     let action = ActionToZen::new(
         to_pak_dir.clone(),
         mod_dir.join(utoc_name),
         EngineVersion::UE5_3,
     );
-    let mut config = Config {
+    let config = Config {
         container_header_version_override: None,
         ..Default::default()
     };
 
-    let aes_toc =
-        retoc::AesKey::from_str("0C263D8C22DCB085894899C3A3796383E9BF9DE0CBFB08C9BF2DEF2E84F29D74")
-            .unwrap();
 
-    config.aes_keys.insert(FGuid::default(), aes_toc.clone());
     let config = Arc::new(config);
 
     action_to_zen(action, config).expect("Failed to convert to zen");
@@ -79,8 +70,7 @@ pub fn convert_to_iostore_directory(
         .collect::<Vec<_>>();
 
     let builder = repak::PakBuilder::new()
-        .compression(vec![pak.compression])
-        .key(AES_KEY.clone().0);
+        .compression(vec![pak.compression]);
 
     let mut pak_writer = builder.writer(
         BufWriter::new(output_file),

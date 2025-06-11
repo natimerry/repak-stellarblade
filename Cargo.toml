@@ -1,14 +1,14 @@
 [workspace]
 resolver = "2"
-members = ["repak", "repak-gui", "repak_cli","simd_str_cmp"]
+members = ["repak", "repak-gui"]
 
 [workspace.package]
-repository = "https://github.com/natimerry/repak-rivals"
+repository = "https://github.com/natimerry/repak-stellarblade"
 authors = ["spuds", "trumank","natimerry"]
 license = "MIT OR Apache-2.0"
 version = "2.5.6"
 edition = "2021"
-keywords = ["marvel-rivals","unreal-engine", "pak", "unrealpak"]
+keywords = ["stellar-blade","unreal-engine", "pak", "unrealpak"]
 
 
 [profile.release]
