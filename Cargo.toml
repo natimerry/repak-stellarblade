@@ -6,7 +6,7 @@ members = ["repak", "repak-gui"]
 repository = "https://github.com/natimerry/repak-stellarblade"
 authors = ["spuds", "trumank","natimerry"]
 license = "MIT OR Apache-2.0"
-version = "2.5.6"
+version = "0.1.0"
 edition = "2021"
 keywords = ["stellar-blade","unreal-engine", "pak", "unrealpak"]
 
