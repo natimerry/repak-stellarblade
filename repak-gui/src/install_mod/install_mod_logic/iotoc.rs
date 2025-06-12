@@ -41,7 +41,7 @@ pub fn convert_to_iostore_directory(
     let action = ActionToZen::new(
         to_pak_dir.clone(),
         mod_dir.join(utoc_name),
-        EngineVersion::UE5_3,
+        EngineVersion::UE4_26,
     );
     let config = Config {
         container_header_version_override: None,
