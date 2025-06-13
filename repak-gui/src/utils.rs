@@ -1,5 +1,5 @@
-use std::option::Option;
 use std::collections::HashMap;
+use std::option::Option;
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 use std::{fs, io};
@@ -7,25 +7,22 @@ use std::{fs, io};
 #[derive(Debug, Deserialize, Serialize, Hash)]
 struct SkinEntry {
     skinid: String,
-    #[serde(rename = "skin_name")]
     skin_name: String,
     name: String,
 }
 
-static SKIN_ENTRIES: LazyLock<HashMap<u32, SkinEntry>> = LazyLock::new(|| {
+static SKIN_ENTRIES: LazyLock<HashMap<String, SkinEntry>> = LazyLock::new(|| {
     let skins: Vec<SkinEntry> =
         serde_json::from_str(include_str!("data/character_data.json")).expect("Invalid JSON");
-    let skin_map: HashMap<u32, SkinEntry> = skins
+    let skin_map: HashMap<String, SkinEntry> = skins
         .into_iter()
-        .map(|entry| (entry.skinid.parse().unwrap(), entry))
+        .map(|entry| (entry.skinid.clone(), entry))
         .collect();
 
     skin_map
 });
 
-static SKIN_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"[0-9]{4}\/[0-9]{7}").unwrap()
-});
+static SKIN_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"[0-9]{4}\/[0-9]{7}").unwrap());
 
 pub fn collect_files(paths: &mut Vec<PathBuf>, dir: &Path) -> io::Result<()> {
     for entry in fs::read_dir(dir)? {
@@ -44,48 +41,92 @@ pub enum ModType {
     Default(String),
     Custom(String),
 }
-pub fn get_character_mod_skin(file: &str) -> Option<ModType> {
-    let skin_id = SKIN_REGEX.clone().captures(file);
-    if let Some(skin_id) = skin_id {
-        let skin_id = skin_id[0].to_string();
-        let skin_id = &skin_id[5..];
-        let skin = SKIN_ENTRIES.get(&(skin_id.parse().unwrap()));
-        if let Some(skin) = skin {
-            if skin.skin_name == "Default" {
-                return Some(ModType::Default(format!(
-                    "{} - {}",
-                    &skin.name, &skin.skin_name
-                )));
-            }
-            return Some(ModType::Custom(format!(
+pub fn get_character_mod_skin(skin_id: &str) -> Option<ModType> {
+    let skin = SKIN_ENTRIES.get(&skin_id.to_string());
+    if let Some(skin) = skin {
+        if skin.skin_name == "Default" {
+            return Some(ModType::Default(format!(
                 "{} - {}",
                 &skin.name, &skin.skin_name
             )));
         }
-        None
-    } else {
-        None
+        return Some(ModType::Custom(format!(
+            "{} - {}",
+            &skin.name, &skin.skin_name
+        )));
     }
+    None
 }
+
+fn extract_character_from_path(path: &str) -> Option<String> {
+    // Look for the "PC/" part of the path and extract the name that follows it
+    if let Some(start) = path.rfind("/PC/") {
+        // Extract the character name after "/PC/"
+        let start_pos = start + "/PC/".len();
+        if let Some(end) = path[start_pos..].find('/') {
+            return Some(path[start_pos..start_pos + end].to_string());
+        }
+    }
+    None
+}
+
+// Helper function to extract the character from the path
+fn extract_character_from_path_audio(path: &str) -> Option<String> {
+    // Look for the "ActionVoice" part of the path and extract the name that follows it
+    if let Some(start) = path.rfind("/ActionVoice/") {
+        // Extract the character name after "/ActionVoice/"
+        let start_pos = start + "/ActionVoice/".len();
+        if let Some(end) = path[start_pos..].find('/') {
+            return Some(path[start_pos..start_pos + end].to_string());
+        }
+    }
+    None
+}
+
+// Helper function to extract the language from the path
+fn extract_language_from_path(path: &str) -> Option<String> {
+    // Look for the "L10N" part of the path and extract the language that follows it
+    if let Some(start) = path.rfind("L10N/") {
+        // Extract the language code after "/L10N/"
+        let start_pos = start + "L10N/".len();
+        if let Some(end) = path[start_pos..].find('/') {
+            return Some(path[start_pos..start_pos + end].to_string());
+        }
+    }
+    None
+}
+
 pub fn get_current_pak_characteristics(mod_contents: Vec<String>) -> String {
     let mut fallback: Option<String> = None;
 
     for file in &mod_contents {
         let path = file
-            .strip_prefix("Marvel/Content/Marvel/")
-            .or_else(|| file.strip_prefix("/Game/Marvel/"))
+            .strip_prefix("SB/Content/SB/")
+            .or_else(|| file.strip_prefix("/Game/"))
             .unwrap_or(file);
 
         let category = path.split('/').next().unwrap_or_default();
 
         match category {
-            "Characters" => {
-                match get_character_mod_skin(path) {
+            "L10N" => {
+                // Extract character and language from the path
+                if let Some(character) = extract_character_from_path_audio(path) {
+                    if let Some(language) = extract_language_from_path(path) {
+                        return format!("Audio ({} - {})", character, language);
+                    }
+                }
+                // Fallback logic in case the extraction fails
+                return "Audio (Unknown)".to_string();
+            }
+            "Art" => if let Some(character) = extract_character_from_path(path) {
+                match get_character_mod_skin(character.as_str()) {
                     Some(ModType::Custom(skin)) => return skin,
                     Some(ModType::Default(name)) => fallback = Some(name),
-                    None => return "Character (Unknown)".to_string(),
+                    None => {
+                        debug!("No character data found. Trying next");
+                    }
                 }
-            }
+            },
             "UI" => return "UI".to_string(),
             "Movies" => return "Movies".to_string(),
             _ if path.contains("WwiseAudio") => return "Audio".to_string(),
@@ -96,10 +137,9 @@ pub fn get_current_pak_characteristics(mod_contents: Vec<String>) -> String {
     fallback.unwrap_or_else(|| "Unknown".to_string())
 }
 
-
-use log::info;
-use serde::{Deserialize, Serialize};
+use log::{debug, info};
 use regex_lite::Regex;
+use serde::{Deserialize, Serialize};
 
 pub fn find_marvel_rivals() -> Option<PathBuf> {
     let shit = get_steam_library_paths();

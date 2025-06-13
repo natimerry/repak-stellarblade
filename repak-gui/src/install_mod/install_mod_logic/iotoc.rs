@@ -22,7 +22,7 @@ pub fn convert_to_iostore_directory(
     packed_files_count: &AtomicI32,
 ) -> Result<(), repak::Error> {
     let mod_type = pak.mod_type.clone();
-    if mod_type == "Audio" || mod_type == "Movies" {
+    if mod_type.contains( "Audio") || mod_type == "Movies" {
         debug!("{} mod detected. Not creating iostore packages",mod_type);
         repak_dir(pak, to_pak_dir, mod_dir, packed_files_count)?;
         return Ok(());
