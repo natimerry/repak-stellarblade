@@ -1,0 +1,1532 @@
+[
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_02",
+        "skin_name": "Daily Biker"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_02_TypeB",
+        "skin_name": "Four Seconds Biker"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_03",
+        "skin_name": "Four Seconds Biker"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_04",
+        "skin_name": "Daily Denim"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_04_TypeB",
+        "skin_name": "Four Seconds Denim"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_05",
+        "skin_name": "Daily Sailor"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_05_TypeB",
+        "skin_name": "Comfort Sailor"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_06",
+        "skin_name": "Black Wave"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_06_TypeB",
+        "skin_name": "Wild Wave"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_07",
+        "skin_name": "Punk Top"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_07_Type_B",
+        "skin_name": "Punk Style"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_08",
+        "skin_name": "Prototype Planet Diving Suit V2"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_08",
+        "skin_name": "Planet Diving Suit (6th)"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_08_Type_B_OrangeRed",
+        "skin_name": "Planet Diving Suit (6th) V2"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_08_TypeC",
+        "skin_name": "Planet Diving Suit (6th) V3"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_09",
+        "skin_name": "Planet Diving Suit (7th)"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_09_TypeB",
+        "skin_name": "Planet Diving Suit (7th) V2"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_09_TypeC",
+        "skin_name": "Planet Diving Suit (7th) V3"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_09_V02",
+        "skin_name": "Planet Diving Suit (7th) V3"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_09_V02_TypeB",
+        "skin_name": "Planet Diving Suit (7th) V3"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_10",
+        "skin_name": "Planet Diving Suit (Capitan) (Tachy Suit)"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_11",
+        "skin_name": "Raven Suit"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_14",
+        "skin_name": "Planet Diving Suit (3rd)"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_14_TypeB",
+        "skin_name": "Planet Diving Suit (3rd) V2"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_14_1",
+        "skin_name": "Prototype Planet Diving Suit"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_14_1_TypeB",
+        "skin_name": "Prototype Planet Diving Suit V2"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_15_V02",
+        "skin_name": "Orca Engineer"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_15_V02_TypeB",
+        "skin_name": "Orca Techie"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_16",
+        "skin_name": "Black Kunoichi"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_16_TypeB",
+        "skin_name": "White Kunoichi"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_17",
+        "skin_name": "Sporty Yellow"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_17_TypeB",
+        "skin_name": "Sporty Energy"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_18",
+        "skin_name": "Daily Mascot"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_18_TypeB",
+        "skin_name": "Comfort Mascot"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_19",
+        "skin_name": "Cybernetic Bondage"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_19_TypeB",
+        "skin_name": "Autonetic Bondage"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_20",
+        "skin_name": "Black Rose"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_20_TypeC",
+        "skin_name": "Angelic Rose"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_20_TypeB",
+        "skin_name": "La Vie en Rose"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_21",
+        "skin_name": "Sky Ace"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_21_TypeB",
+        "skin_name": "Air Ace"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_22",
+        "skin_name": "White full dress"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_23",
+        "skin_name": "Black full dress"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_24",
+        "skin_name": "Wasteland Adventurer"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_24_TypeB",
+        "skin_name": "Wasteland Explorer"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_25",
+        "skin_name": "Motivation"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_25_TypeB",
+        "skin_name": "Resonance"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_26",
+        "skin_name": "Red Passion"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_26_TypeB",
+        "skin_name": "Emerald Passion"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_27",
+        "skin_name": "Ocean Maid"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_27_TypeB",
+        "skin_name": "Tidal Maid"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_28",
+        "skin_name": "Holliday Rabbit"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_28_typeB",
+        "skin_name": "Holliday Bunny"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_29",
+        "skin_name": "Keyhole Suit"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_29_TypeB",
+        "skin_name": "Stargazer Suit"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_29_TypeC",
+        "skin_name": "Keyhole Dress"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_30",
+        "skin_name": "Planet Diving Suit Suit (2nd)"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_30_TypeB",
+        "skin_name": "Planet Diving Suit Suit (2nd) V2"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_31",
+        "skin_name": "Cybernetic Dress"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_31_TypeB",
+        "skin_name": "Cybernetic Suit"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_32",
+        "skin_name": "Daily Knit Dress"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_32_TypeB",
+        "skin_name": "Comfort Knit Dress"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_33",
+        "skin_name": "Peony"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_34",
+        "skin_name": "Moutan Peony"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_34_body_02",
+        "skin_name": "Black Lotus"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_35",
+        "skin_name": "Black Pearl"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_35_TypeB",
+        "skin_name": "Red Pearl"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_36",
+        "skin_name": "Junk mechanic"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_36_TypeB",
+        "skin_name": "Junk Engineer"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_37",
+        "skin_name": "Office Style"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_37_TypeB",
+        "skin_name": "Crew Style"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_39",
+        "skin_name": "Daily Force"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_39_TypeB",
+        "skin_name": "Comfort Force"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_40_TypeC",
+        "skin_name": "Cyber \u200b\u200bIllusionist"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_40",
+        "skin_name": "Cyber Magician"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_40_TypeB",
+        "skin_name": "Cyber \u200b\u200bTrickster"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_41",
+        "skin_name": "Racers High"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_41_TypeB",
+        "skin_name": "Speeders High"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_42",
+        "skin_name": "Orca Exploration Suit"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_42_TypeB",
+        "skin_name": "Orca Pathfinder"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_43",
+        "skin_name": "Blue Monsoon"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_43_TypeB",
+        "skin_name": "White Monsoon"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_45",
+        "skin_name": "Fluffy Bear"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_45_TypeB",
+        "skin_name": "Pink Bear"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_46",
+        "skin_name": "Silver Kunoichi"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_46_TypeB",
+        "skin_name": "Shadow Kunoichi"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_47",
+        "skin_name": "Cyber Bunny"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_49_TypeB",
+        "skin_name": "Aqua Pearl"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_49",
+        "skin_name": "White Pearl"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_50",
+        "skin_name": "Four Seconds Everyday Wear"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_50_TypeB",
+        "skin_name": "Four Seconds Essential Wear"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_52_TypeB",
+        "skin_name": "Four Seconds Destroyed Denim"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_52",
+        "skin_name": "Four Seconds Black Denim"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_52",
+        "skin_name": "Four Seconds Classic Denim"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_53",
+        "skin_name": "Ultimate Bunny"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_53_TypeB",
+        "skin_name": "Extreme Bunny"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_54",
+        "skin_name": "Neurocircuit Bondage"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_55",
+        "skin_name": "Prototype Neurolink Suit"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_55_TypeB",
+        "skin_name": "Prototype Sensate Suit"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_56",
+        "skin_name": "Neurolink Suit"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_57",
+        "skin_name": "Neurolink Skin"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_57_TypeB",
+        "skin_name": "Sensate Skin"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_58",
+        "skin_name": "War Aegis"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_59",
+        "skin_name": "War Dress"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_59_TypeB",
+        "skin_name": "War Suit"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_60",
+        "skin_name": "Midsummer Red Hood"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_61",
+        "skin_name": "Midsummer Alice"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_62",
+        "skin_name": "Wave Oblique Monokini"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_63",
+        "skin_name": "Wave Diver Bikini"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_Christmas_01",
+        "skin_name": "Santa Dress"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_DX",
+        "skin_name": "Photogenic"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_DX_TypeB",
+        "skin_name": "Telegenic"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_Fusion",
+        "skin_name": "Angelic Rose Nano Suit"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_IberisCos",
+        "skin_name": "Iberis' Costume"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_InnerSuit",
+        "skin_name": "Skin Suit"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_InnerSuit1",
+        "skin_name": "Skin Suit (Blue)"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_OneMillion_01",
+        "skin_name": "Crimson Wings"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_RoyalGuard_01",
+        "skin_name": "Royal Guard Suit (Rael's Outfit)"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_Nier_01",
+        "skin_name": "YoRHa Uniform No. 2 Type B"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_Nier_02",
+        "skin_name": "YoRHa Uniform 1"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_Nier_03",
+        "skin_name": "YoRHa Unofficial Ceremonial Attire"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_Nier_04",
+        "skin_name": "YoRHa Type A No. 2"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_Nikke_01",
+        "skin_name": "Scarlet Costume"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_Nikke_02",
+        "skin_name": "Elegant Dress (Dorothy)"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_Nikke_03",
+        "skin_name": "Elysion Combat Uniform (Rapi)"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_Nikke_04",
+        "skin_name": "Never Look Back (Anis)"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_Nikke_05",
+        "skin_name": "Missing Link (Modernia)"
+    },
+    {
+        "name": "Eve",
+        "skinid": "CH_P_EVE_Nikke_06",
+        "skin_name": "Cooling Suit (Alice)"
+    },
+    {
+        "name": "NPC Lilly",
+        "skinid": "CH_NPC_01",
+        "skin_name": "Artemis"
+    },
+    {
+        "name": "NPC Lilly",
+        "skinid": "CH_NPC_Lilly_DX",
+        "skin_name": "Stargazer coat"
+    },
+    {
+        "name": "NPC Lilly",
+        "skinid": "CH_NPC_Lily_02_TypeB",
+        "skin_name": "Rainy Day"
+    },
+    {
+        "name": "NPC Lilly",
+        "skinid": "CH_NPC_Lily_02",
+        "skin_name": "Rainy Day (Unreleased variation)"
+    },
+    {
+        "name": "NPC Lilly",
+        "skinid": "CH_NPC_Lily_TypeC",
+        "skin_name": "Shower day"
+    },
+    {
+        "name": "NPC Lilly",
+        "skinid": "CH_NPC_Lilly_03",
+        "skin_name": "Off Duty"
+    },
+    {
+        "name": "NPC Lilly",
+        "skinid": "CH_NPC_Lilly_03_TypeB",
+        "skin_name": "Day Off"
+    },
+    {
+        "name": "NPC Lilly",
+        "skinid": "CH_NPC_Lily_Nier_01",
+        "skin_name": "YoRHa Uniform No. 9 S Type"
+    },
+    {
+        "name": "NPC Adam",
+        "skinid": "CH_NPC_Adam",
+        "skin_name": "YoRHa Uniform No. 9 S Type"
+    },
+    {
+        "name": "NPC Adam",
+        "skinid": "CH_NPC_Adam_01",
+        "skin_name": "Sewer Rat"
+    },
+    {
+        "name": "NPC Adam",
+        "skinid": "CH_NPC_Adam_DX",
+        "skin_name": "Stargazer Wear"
+    },
+    {
+        "name": "NPC Adam",
+        "skinid": "CH_NPC_Adam_02",
+        "skin_name": "Junk Man"
+    },
+    {
+        "name": "NPC Adam",
+        "skinid": "CH_NPC_Adam_02_TypeB",
+        "skin_name": "Ragman"
+    },
+    {
+        "name": "NPC Adam",
+        "skinid": "CH_NPC_Adam_03",
+        "skin_name": "Chameleon"
+    },
+    {
+        "name": "NPC Adam",
+        "skinid": "CH_NPC_Adam_03_TypeB",
+        "skin_name": "Nighthawk"
+    },
+    {
+        "name": "NPC Adam",
+        "skinid": "CH_NPC_Adam_Nier_01",
+        "skin_name": "Emile's head"
+    },
+    {
+        "name": "NPC Adam",
+        "skinid": "CH_NPC_Adam_Christmas_01",
+        "skin_name": "I Am Not Santa"
+    },
+    {
+        "name": "NPC Adam",
+        "skinid": "CH_M_NA_55",
+        "skin_name": "Elder Naytiba Adam"
+    },
+    {
+        "name": "NPC Adam",
+        "skinid": "Adam_Skeleton",
+        "skin_name": "Adam Skeleton"
+    },
+    {
+        "name": "NPC Drone",
+        "skinid": "CH_NPC_Drone",
+        "skin_name": "Tactical Pack"
+    },
+    {
+        "name": "NPC Drone",
+        "skinid": "CH_NPC_Drone01",
+        "skin_name": "Armored Pack"
+    },
+    {
+        "name": "NPC Drone",
+        "skinid": "CH_NPC_Drone01_TypeB",
+        "skin_name": "Iron Clad Pack"
+    },
+    {
+        "name": "NPC Drone",
+        "skinid": "CH_NPC_Drone02",
+        "skin_name": "Stargazer Pack"
+    },
+    {
+        "name": "NPC Drone",
+        "skinid": "CH_NPC_Drone_Bear",
+        "skin_name": "Fluffy Bear Pack"
+    },
+    {
+        "name": "NPC Drone",
+        "skinid": "CH_NPC_Drone03",
+        "skin_name": "Lop Bunny Pack"
+    },
+    {
+        "name": "NPC Drone",
+        "skinid": "CH_NPC_Drone03_TypeB",
+        "skin_name": "Dwarf Rabbit Pack"
+    },
+    {
+        "name": "NPC Drone",
+        "skinid": "CH_NPC_Drone_Nier",
+        "skin_name": "Pod 042 pack"
+    },
+    {
+        "name": "NPC Drone",
+        "skinid": "CH_NPC_Drone_Christmas_01",
+        "skin_name": "Rudolph pack"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_02",
+        "skin_name": "Clyde"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_03",
+        "skin_name": "Soldier"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_05",
+        "skin_name": "Life Point Android"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_06",
+        "skin_name": "Half deleted model of Kasim without textures"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_04",
+        "skin_name": "Unidentified NPC"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_07",
+        "skin_name": "Unidentified NPC"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_AirborneSquad",
+        "skin_name": "AirBorne Squad"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_Lizard",
+        "skin_name": "NPC Animal"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_Rat",
+        "skin_name": "NPC Animal"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_Barry",
+        "skin_name": "NPC Barry"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_Child_01",
+        "skin_name": "NPC Child"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_CitizenFatMan_A",
+        "skin_name": "Kasim"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_CitizenFemale_A",
+        "skin_name": "Citizen Female"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_CitizenMale_A",
+        "skin_name": "Citizen Male"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_CitizenMale_B",
+        "skin_name": "Citizen Male"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_CitizenMale_C",
+        "skin_name": "Citizen Male"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_CitizenMale_SJK",
+        "skin_name": "Citizen Male"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_DeadCat",
+        "skin_name": "NPC DeadCat"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_Deadman_02",
+        "skin_name": "NPC Deadman"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_Deadman_03",
+        "skin_name": "NPC Deadman"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_Deadman_04",
+        "skin_name": "NPC Deadman"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_EngineerMale",
+        "skin_name": "Engineer Male"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_Enya",
+        "skin_name": "NPC Enya"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_Exosuit",
+        "skin_name": "NPC Exosuit"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_Iberis",
+        "skin_name": "NPC Iberis"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_JellyFish",
+        "skin_name": "NPC JellyFish"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_Kara",
+        "skin_name": "NPC Kara"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_Kaya",
+        "skin_name": "NPC Kaya"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_LabCorpse",
+        "skin_name": "NPC LabCorpse"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_Mael",
+        "skin_name": "NPC Mael"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_Maid_01",
+        "skin_name": "NPC Maid"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_Motherspier",
+        "skin_name": "Motherspier"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_Rael",
+        "skin_name": "NPC Rael"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_Roxane",
+        "skin_name": "NPC Roxane"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_ScavengerFemale_A",
+        "skin_name": "Scavenger Female A"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_SU",
+        "skin_name": "NPC SU"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_Tachy",
+        "skin_name": "NPC Tachy"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_Dororong",
+        "skin_name": "DORO"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_VIPGuard",
+        "skin_name": "VIP Guard"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_XionElder",
+        "skin_name": "Xion Elder"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_XionGuard",
+        "skin_name": "Xion Guard"
+    },
+    {
+        "name": "Other NPCs",
+        "skinid": "CH_NPC_Mann",
+        "skin_name": "Mann"
+    },
+    {
+        "name": "Monsters",
+        "skinid": "CH_M_MA_53",
+        "skin_name": "Monster Raven"
+    },
+    {
+        "name": "Weapons",
+        "skinid": "FishingRod",
+        "skin_name": "Fish Rod"
+    },
+    {
+        "name": "Weapons",
+        "skinid": "CH_ACC_HairPin",
+        "skin_name": "Sword"
+    },
+    {
+        "name": "Weapons",
+        "skinid": "CH_W_Sword_01",
+        "skin_name": "Sword"
+    },
+    {
+        "name": "Weapons",
+        "skinid": "CH_W_Sword_Co_Ni",
+        "skin_name": "Sword"
+    },
+    {
+        "name": "Weapons",
+        "skinid": "CH_W_Sword_seq",
+        "skin_name": "Sword"
+    },
+    {
+        "name": "Weapons",
+        "skinid": "CH_W_Sword_02",
+        "skin_name": "Sword"
+    },
+    {
+        "name": "Weapons",
+        "skinid": "CH_W_Sword_03_Fusion",
+        "skin_name": "Sword"
+    },
+    {
+        "name": "Weapons",
+        "skinid": "CH_W_Sword_03",
+        "skin_name": "Sword"
+    },
+    {
+        "name": "Weapons",
+        "skinid": "CH_W_Sword_02_Re2",
+        "skin_name": "Sword"
+    },
+    {
+        "name": "Weapons",
+        "skinid": "CH_W_Sword_FX",
+        "skin_name": "Sword"
+    },
+    {
+        "name": "Weapons",
+        "skinid": "CH_W_Sword",
+        "skin_name": "Sword"
+    },
+    {
+        "name": "Weapons",
+        "skinid": "Weapon002",
+        "skin_name": "Sword"
+    },
+    {
+        "name": "Weapons",
+        "skinid": "Fusion_Wing_L",
+        "skin_name": "Wing"
+    },
+    {
+        "name": "Weapons",
+        "skinid": "Fusion_Wing_L2_Backup",
+        "skin_name": "Wing"
+    },
+    {
+        "name": "Weapons",
+        "skinid": "Fusion_Wing_L2",
+        "skin_name": "Wing"
+    },
+    {
+        "name": "Weapons",
+        "skinid": "Tachy_Wing_L",
+        "skin_name": "Wing"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "ETC_Buddha",
+        "skin_name": "Wing"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "ETC_DiscardedBear",
+        "skin_name": "Wing"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_AlphaCore_01",
+        "skin_name": "Item_AlphaCore"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "ammo_Concussion",
+        "skin_name": "Item_Ammo"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "ammo_Peacemaker",
+        "skin_name": "Item_Ammo"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "ammo_Slug",
+        "skin_name": "Item_Ammo"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "ammo_SmartMissile",
+        "skin_name": "Item_Ammo"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Ammo_case",
+        "skin_name": "item_Ammocase"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Ampoule",
+        "skin_name": "Item_Ampoule"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "ITEM_Salmon",
+        "skin_name": "ITEM_Bait"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "ITEM_Shrimp",
+        "skin_name": "ITEM_Bait"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "ITEM_Special_01",
+        "skin_name": "ITEM_Bait"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "ITEM_Worm",
+        "skin_name": "ITEM_Bait"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_BetaCrystal",
+        "skin_name": "Item_BetaCrystal"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Blackbox",
+        "skin_name": "Item_BlackBox"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_BetaCore",
+        "skin_name": "Item_Betacore"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Betacore",
+        "skin_name": "Item_Betacore"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_BodySuitsMaterial",
+        "skin_name": "Item_BodySuitsMaterial"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Book_04",
+        "skin_name": "Item_Book"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Book_08",
+        "skin_name": "Item_Book"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Book_09",
+        "skin_name": "Item_Book"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Book_10",
+        "skin_name": "Item_Book"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Book_11",
+        "skin_name": "Item_Book"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_BulletScatter",
+        "skin_name": "Item_BulletScatter"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Bullet_Shock",
+        "skin_name": "Item_BulletShock"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "item_BurstCore",
+        "skin_name": "Item_BurstCore"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_ChristmasBox",
+        "skin_name": "Item_ChristmasBox"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "ClydeFloat_01",
+        "skin_name": "Item_ClydeFloat"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "ETC_Can",
+        "skin_name": "Item_CollectionCan"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "ETC_CanDrop",
+        "skin_name": "Item_CollectionCan"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "ETC_LowCan",
+        "skin_name": "Item_CollectionCan"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_CGrenade",
+        "skin_name": "Item_ConcussionGrenade"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Costume_Recipe",
+        "skin_name": "Item_Costume_Recipe"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_count_box",
+        "skin_name": "Item_count_box"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_DesignPattern_01",
+        "skin_name": "Item_DesignPattern_01"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_DroneCore",
+        "skin_name": "Item_DroneCore"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_EntranceToken",
+        "skin_name": "Item_EntranceToken"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_FlashGrenade",
+        "skin_name": "Item_FlashGrenade"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_FusionCell",
+        "skin_name": "Item_Fusioncell"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_FusionCellbox",
+        "skin_name": "Item_FusioncellBox"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Gear01_Lod",
+        "skin_name": "Item_Gear_01"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Gear01",
+        "skin_name": "Item_Gear_01"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Gold_01",
+        "skin_name": "Item_Gold"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Gold_02",
+        "skin_name": "Item_Gold"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Gold_03",
+        "skin_name": "Item_Gold"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Gold_Btype",
+        "skin_name": "Item_Gold"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Gold_Ctype",
+        "skin_name": "Item_Gold"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_HealGrenade",
+        "skin_name": "Item_HealGrenade"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Highpolymer_large",
+        "skin_name": "Item_Highpolymer"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Highpolymer_medium",
+        "skin_name": "Item_Highpolymer"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Highpolymer_Object001",
+        "skin_name": "Item_Highpolymer"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Hypercell",
+        "skin_name": "Item_Hypercell"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Initializer",
+        "skin_name": "Item_Initializer"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Lure_megabateDX",
+        "skin_name": "Item_Lure"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Lure_metalcustom",
+        "skin_name": "Item_Lure"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Lure_Metalvibe",
+        "skin_name": "Item_Lure"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Lure_rainbowspoon",
+        "skin_name": "Item_Lure"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Lure_softbate",
+        "skin_name": "Item_Lure"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_MasterCore",
+        "skin_name": "Item_MasterCore"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Medikit_Large",
+        "skin_name": "Item_Medikit"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Medikit_rig_C",
+        "skin_name": "Item_Medikit"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Medikit_SM_02",
+        "skin_name": "Item_Medikit"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_MemoryCard",
+        "skin_name": "Item_MemoryCard"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_MemoryCard_Seq",
+        "skin_name": "Item_MemoryCard"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_MemoryChip",
+        "skin_name": "Item_MemoryChip"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Memorystick_TypaA",
+        "skin_name": "Item_Memorystick"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Memorystick_TypaB",
+        "skin_name": "Item_Memorystick"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Money_Junklron",
+        "skin_name": "Item_MoneyJunklron"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_MicroDriver",
+        "skin_name": "Item_MoneyJunklron"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Micromotor",
+        "skin_name": "Item_MoneyJunklron"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_MonsterCore_01",
+        "skin_name": "Item_Monstercore"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Nano_large",
+        "skin_name": "Item_Nano"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Nano_medium",
+        "skin_name": "Item_Nano"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Nano_small",
+        "skin_name": "Item_Nano"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_OmniBolt",
+        "skin_name": "Item_OmniBolt"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Sm_Item_Protecter",
+        "skin_name": "Item_Protecter"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Pulse_Grenade",
+        "skin_name": "Item_PulseGrenade"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_SandCure",
+        "skin_name": "Item_SandCure"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Small_Box",
+        "skin_name": "Item_Small_Box"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Small_Box_02",
+        "skin_name": "Item_Small_Box"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Iteam_Small_Box_01",
+        "skin_name": "Item_Small_Box_01"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Small_Box_01",
+        "skin_name": "Item_Small_Box_01"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Small_Box_01_TypeB",
+        "skin_name": "Item_Small_Box_01"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_Syringe",
+        "skin_name": "Item_Syringe"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_TDCore_SM",
+        "skin_name": "Item_TDCore"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_TDCore",
+        "skin_name": "Item_TDCore"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_TrapGrenade",
+        "skin_name": "Item_TrapGrenade"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "SM_TrapGrenade",
+        "skin_name": "Item_TrapGrenade"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_WBPump",
+        "skin_name": "Item_WBPump"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_WeaponCore_Damage",
+        "skin_name": "Item_WeaponCore"
+    },
+    {
+        "name": "ETC_Item",
+        "skinid": "Item_WeaponCore",
+        "skin_name": "Item_WeaponCore"
+    }
+]
