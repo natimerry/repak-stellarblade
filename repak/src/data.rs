@@ -33,11 +33,7 @@ pub(crate) fn pad_zeros_to_alignment(v: &mut Vec<u8>, alignment: usize) {
 #[cfg(feature = "encryption")]
 pub(crate) fn encrypt(key: &aes::Aes256, bytes: &mut [u8]) {
     use aes::cipher::BlockEncrypt;
-    for chunk in bytes.chunks_mut(16) {
-        chunk.chunks_mut(4).for_each(|c| c.reverse());
-        key.encrypt_block(aes::Block::from_mut_slice(chunk));
-        chunk.chunks_mut(4).for_each(|c| c.reverse());
-    }
+    panic!("Stellarblade doesnt use encryption");
 }
 
 #[cfg(feature = "encryption")]
